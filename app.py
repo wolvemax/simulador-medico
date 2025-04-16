@@ -6,6 +6,7 @@ from datetime import datetime
 from openai import OpenAI
 import os
 import time
+import json
 
 # ======= CONFIG =======
 client = OpenAI(api_key="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")
@@ -13,7 +14,8 @@ ASSISTANT_ID = "asst_3B1VTDFwJhCaOOdYaymPcMg0"
 ASSISTANT_PEDIATRIA_ID = "asst_T8Vtb86SlVd6jKnm7A6d8adL"
 
 scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
-creds = ServiceAccountCredentials.from_json_keyfile_name("credenciais.json", scope)
+credentials_dict = st.secrets["google_credentials"]
+creds = ServiceAccountCredentials.from_json_keyfile_dict(dict(credentials_dict), scope)
 gclient = gspread.authorize(creds)
 
 def normalizar_chave(chave):
