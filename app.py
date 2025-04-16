@@ -7,6 +7,10 @@ from openai import OpenAI
 import os
 import time
 
+# Carregar credenciais do st.secrets
+credentials_dict = st.secrets["gspread_service_account"]
+creds = ServiceAccountCredentials.from_json_keyfile_dict(credentials_dict, scope)
+client = gspread.authorize(creds)
 
 client = OpenAI(api_key="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")
 ASSISTANT_ID = "asst_3B1VTDFwJhCaOOdYaymPcMg0"
