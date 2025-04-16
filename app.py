@@ -2,43 +2,13 @@ import streamlit as st
 import unicodedata
 from oauth2client.service_account import ServiceAccountCredentials
 from datetime import datetime
-import os
 import time
 import openai
 import gspread
 import base64
 
-# ======= CONFIG =======
-st.set_page_config(
-    page_title="Simulador Médico IA",
-    page_icon="🩺",
-    layout="wide"
-)
-
-st.markdown("""
-    <style>
-    .main-title {
-        font-size: 38px;
-        font-weight: bold;
-        color: #003366;
-        margin-bottom: 1rem;
-    }
-    .stButton > button {
-        background-color: #003366;
-        color: white;
-        font-weight: bold;
-        border-radius: 10px;
-        padding: 0.5em 1em;
-    }
-    .metric-box {
-        background-color: #f7f9fc;
-        padding: 1rem;
-        border-radius: 10px;
-        box-shadow: 0 2px 6px rgba(0,0,0,0.05);
-        margin-bottom: 1rem;
-    }
-    </style>
-""", unsafe_allow_html=True)
+# ======= CONFIGURAÇÕES =======
+st.set_page_config(page_title="Simulador Médico IA", page_icon="🩺", layout="wide")
 
 openai.api_key = st.secrets["openai"]["api_key"]
 ASSISTANT_ID = st.secrets["assistants"]["default"]
@@ -50,6 +20,7 @@ google_creds = dict(st.secrets["google_credentials"])
 creds = ServiceAccountCredentials.from_json_keyfile_dict(google_creds, scope)
 client_gspread = gspread.authorize(creds)
 
+# ======= FUNÇÕES AUXILIARES =======
 def remover_acentos(texto):
     return ''.join((c for c in unicodedata.normalize('NFD', texto) if unicodedata.category(c) != 'Mn'))
 
@@ -98,7 +69,7 @@ def salvar_nota_usuario(usuario, nota):
 def extrair_nota(texto):
     import re
     try:
-        match = re.search(r"nota\s*[:\-]?\s*(\\d+(?:[\\.,]\\d+)?)(?:\\s*/?\\s*10)?", texto, re.IGNORECASE)
+        match = re.search(r"nota\\s*[:\\-]?\\s*(\\d+(?:[\\.,]\\d+)?)(?:\\s*/?\\s*10)?", texto, re.IGNORECASE)
         if not match:
             match = re.search(r"(\\d+(?:[\\.,]\\d+)?)\\s*/\\s*10", texto)
         if match:
@@ -106,6 +77,7 @@ def extrair_nota(texto):
     except:
         return None
 
+# ======= ESTADO INICIAL =======
 if "logado" not in st.session_state:
     st.session_state.logado = False
 if "thread_id" not in st.session_state:
@@ -117,9 +89,9 @@ if "consulta_finalizada" not in st.session_state:
 if "prompt_inicial" not in st.session_state:
     st.session_state.prompt_inicial = ""
 
+# ======= LOGIN =======
 if not st.session_state.logado:
-    st.markdown('<div class="main-title">🔐 Acesso Restrito</div>', unsafe_allow_html=True)
-    st.warning("Por favor, faça login para acessar o simulador.")
+    st.title("🔐 Simulador Médico - Login")
     with st.form("login_form"):
         usuario = st.text_input("Usuário")
         senha = st.text_input("Senha", type="password")
@@ -133,21 +105,13 @@ if not st.session_state.logado:
                 st.error("Usuário ou senha inválidos.")
     st.stop()
 
-st.markdown('<div class="main-title">🩺 Simulador Médico Interativo com IA</div>', unsafe_allow_html=True)
+# ======= ÁREA LOGADA =======
+st.title("🩺 Simulador Médico Interativo com IA")
+st.markdown(f"👤 Usuário: **{st.session_state.usuario}**")
 
-col1, col2, col3 = st.columns(3)
-with col1:
-    st.markdown("<div class='metric-box'>", unsafe_allow_html=True)
-    st.metric("📋 Casos Finalizados", contar_casos_usuario(st.session_state.usuario))
-    st.markdown("</div>", unsafe_allow_html=True)
-with col2:
-    st.markdown("<div class='metric-box'>", unsafe_allow_html=True)
-    st.metric("📊 Média Global", calcular_media_usuario(st.session_state.usuario))
-    st.markdown("</div>", unsafe_allow_html=True)
-with col3:
-    st.markdown("<div class='metric-box'>", unsafe_allow_html=True)
-    st.metric("🕒 Simulações Hoje", "Atualizando...")
-    st.markdown("</div>", unsafe_allow_html=True)
+col1, col2 = st.columns(2)
+col1.metric("📋 Casos finalizados", contar_casos_usuario(st.session_state.usuario))
+col2.metric("📊 Média global", calcular_media_usuario(st.session_state.usuario))
 
 especialidade = st.radio("Especialidade:", ["PSF", "Pediatria", "Emergências"])
 
@@ -159,19 +123,17 @@ else:
     assistant_id_usado = ASSISTANT_ID
 
 if st.button("➕ Nova Simulação"):
-    assistant_id_usado = ...
     st.session_state.thread_id = openai.beta.threads.create().id
     st.session_state.consulta_finalizada = False
 
-    # prompt inicial só se for Emergências?
+    # Prompt inicial por especialidade
     if especialidade == "Emergências":
         st.session_state.prompt_inicial = ""
     elif especialidade == "Pediatria":
-        st.session_state.prompt_inicial = "Iniciar nova simulação clínica com paciente pediátrico com identificação e queixa principal."
+        st.session_state.prompt_inicial = "Iniciar nova simulação clínica pediátrica com identificação e queixa principal."
     else:
         st.session_state.prompt_inicial = "Iniciar nova simulação clínica com paciente simulado. Apenas início da consulta com identificação e queixa principal."
 
-    # ✅ Só envia mensagem se houver prompt
     if st.session_state.prompt_inicial:
         openai.beta.threads.messages.create(
             thread_id=st.session_state.thread_id,
@@ -179,25 +141,18 @@ if st.button("➕ Nova Simulação"):
             content=st.session_state.prompt_inicial
         )
 
-    # agora roda o assistant normalmente
-    run = openai.beta.threads.runs.create(
-        thread_id=st.session_state.thread_id,
-        assistant_id=assistant_id_usado
-    )
-
+    run = openai.beta.threads.runs.create(thread_id=st.session_state.thread_id, assistant_id=assistant_id_usado)
     with st.spinner("Gerando paciente..."):
         while True:
             status = openai.beta.threads.runs.retrieve(thread_id=st.session_state.thread_id, run_id=run.id)
             if status.status == "completed":
                 break
             time.sleep(1)
-
     mensagens = openai.beta.threads.messages.list(thread_id=st.session_state.thread_id).data
     for msg in mensagens:
         if msg.role == "assistant":
             st.session_state.historico = msg.content[0].text.value
             break
-
 
 if st.session_state.historico:
     st.markdown("### 👤 Paciente")
