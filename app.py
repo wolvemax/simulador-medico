@@ -149,7 +149,7 @@ with col3:
     st.metric("🕒 Simulações Hoje", "Atualizando...")
     st.markdown("</div>", unsafe_allow_html=True)
 
-especialidade = st.radio("Especialidade:", ["PSF", "Pediatria", "Emergências"])
+if especialidade = st.radio("Especialidade:", ["PSF", "Pediatria", "Emergências"])
 
 if especialidade == "Pediatria":
     assistant_id_usado = ASSISTANT_PEDIATRIA_ID
@@ -161,7 +161,7 @@ else:
 if st.button("➕ Nova Simulação"):
     st.session_state.thread_id = openai.beta.threads.create().id
     st.session_state.consulta_finalizada = False
-    if especialidade == "Emergências":
+if especialidade == "Emergências":
     st.session_state.prompt_inicial = ""  # usa o prompt de sistema do Assistant
 else:
     st.session_state.prompt_inicial = "Iniciar nova simulação clínica com paciente simulado. Apenas início da consulta com identificação e queixa principal."
