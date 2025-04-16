@@ -33,8 +33,7 @@ def normalizar(texto):
 
 def validar_credenciais(usuario, senha):
     scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
-    cred_path = os.path.join(os.path.dirname(__file__), "credenciais.json")
-    creds = ServiceAccountCredentials.from_json_keyfile_name(cred_path, scope)
+    creds = ServiceAccountCredentials.from_json_keyfile_dict(dict(st.secrets["google_credentials"]), scope)
     client = gspread.authorize(creds)
     sheet = client.open("LoginSimulador").sheet1
     dados = sheet.get_all_records()
@@ -43,7 +42,7 @@ def validar_credenciais(usuario, senha):
         if linha_normalizada.get("usuario") == usuario and linha_normalizada.get("senha") == senha:
             return True
     return False
-
+    
     for linha in dados:
         usuario_planilha = normalizar(linha.get("usuario", ""))
         senha_planilha = str(linha.get("senha", "")).strip()
