@@ -15,7 +15,7 @@ st.set_page_config(
     layout="wide"
 )
 
-st.markdown(\"\"\"
+st.markdown("""
     <style>
     .main-title {
         font-size: 38px;
@@ -38,7 +38,7 @@ st.markdown(\"\"\"
         margin-bottom: 1rem;
     }
     </style>
-\"\"\", unsafe_allow_html=True)
+""", unsafe_allow_html=True)
 
 openai.api_key = st.secrets["openai"]["api_key"]
 ASSISTANT_ID = st.secrets["assistants"]["default"]
