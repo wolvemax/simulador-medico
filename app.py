@@ -168,13 +168,13 @@ if st.session_state.thread_id and not st.session_state.consulta_finalizada:
             thread_id=st.session_state.thread_id,
             role="user",
             content=(
-                "Finalizar consulta. A partir do histórico da consulta, gere:
+                """Finalizar consulta. A partir do histórico da consulta, gere:\n
 "
-                "1. O prontuário completo do paciente (título: ### Prontuário Completo do Paciente).
+                "1. O prontuário completo do paciente (título: ### Prontuário Completo do Paciente)\n.
 "
-                "2. Um feedback educacional completo para o médico.
+                "2. Um feedback educacional completo para o médico.\n
 "
-                "3. Gere uma nota objetiva de 0 a 10 com base na performance do médico. Escreva obrigatoriamente no formato exato: Nota: X/10."
+                "3. Gere uma nota objetiva de 0 a 10 com base na performance do médico. Escreva obrigatoriamente no formato exato: Nota: X/10.\n\n"""
             )
         )
         run = openai.beta.threads.runs.create(thread_id=st.session_state.thread_id, assistant_id=aid)
