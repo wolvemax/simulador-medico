@@ -1,35 +1,20 @@
-import sys
-import time
-import os
-import re
-import json
+import streamlit as st
 import gspread
 import unicodedata
-import sounddevice as sd
-import numpy as np
-import scipy.io.wavfile
-import io
-import wave
-import qdarkstyle
-from PyQt5 import QtWidgets, uic, QtCore
-from PyQt5.QtWidgets import QListWidgetItem, QDialog, QVBoxLayout, QLabel, QListWidget, QMessageBox
 from oauth2client.service_account import ServiceAccountCredentials
-from dotenv import load_dotenv
 from datetime import datetime
-from PyQt5.QtCore import QTimer
 from openai import OpenAI
-import streamlit as st
-from audio_recorder_streamlit import audio_recorder
+import os
+import time
+
+# Carregar credenciais do st.secrets
+credentials_dict = st.secrets["gspread_service_account"]
+creds = ServiceAccountCredentials.from_json_keyfile_dict(credentials_dict, scope)
+client = gspread.authorize(creds)
 
 client = OpenAI(api_key="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")
 ASSISTANT_ID = "asst_3B1VTDFwJhCaOOdYaymPcMg0"
 ASSISTANT_PEDIATRIA_ID = "asst_T8Vtb86SlVd6jKnm7A6d8adL"
-
-st.title("Gravador de Áudio")
-
-audio_bytes = audio_recorder()
-if audio_bytes:
-    st.audio(audio_bytes, format="audio/wav")
 
 def remover_acentos(texto):
     return ''.join((c for c in unicodedata.normalize('NFD', texto) if unicodedata.category(c) != 'Mn'))
@@ -540,25 +525,3 @@ class HistoricoWindow(QDialog):
                     self.lista.addItem(item)
         except Exception as e:
             self.lista.addItem(f"Erro ao carregar histórico: {e}")
-
-def validar_credenciais(usuario, senha):
-    scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
-    cred_path = os.path.join(os.path.dirname(__file__), "credenciais.json")
-    creds = ServiceAccountCredentials.from_json_keyfile_name(cred_path, scope)
-    client = gspread.authorize(creds)
-    sheet = client.open("LoginSimulador").sheet1
-    dados = sheet.get_all_records()
-    for linha in dados:
-        linha_normalizada = {normalizar_chave(k): v.strip() for k, v in linha.items()}
-        if linha_normalizada.get("usuario") == usuario and linha_normalizada.get("senha") == senha:
-            return True
-    return False
-
-if __name__ == "__main__":
-    app = QtWidgets.QApplication(sys.argv)
-    app.setStyleSheet(qdarkstyle.load_stylesheet_pyqt5())
-    login = Login()
-    if login.exec_() == QtWidgets.QDialog.Accepted:
-        window = Simulador(login.usuario_logado)
-        window.show()
-        sys.exit(app.exec_())
