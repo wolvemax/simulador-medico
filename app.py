@@ -30,10 +30,10 @@ st.markdown(
 )
 
 # ====== CREDENCIAIS ======
-openai.api_key = st.secrets["openai"]["api_key"]
-ASSISTANT_ID             = st.secrets["assistants"]["default"]
-ASSISTANT_PEDIATRIA_ID   = st.secrets["assistants"]["pediatria"]
-ASSISTANT_EMERGENCIAS_ID = st.secrets["assistants"]["emergencias"]
+openai.api_key               = st.secrets["openai"]["api_key"]
+ASSISTANT_ID                 = st.secrets["assistants"]["default"]
+ASSISTANT_PEDIATRIA_ID       = st.secrets["assistants"]["pediatria"]
+ASSISTANT_EMERGENCIAS_ID     = st.secrets["assistants"]["emergencias"]
 
 scope = [
     "https://spreadsheets.google.com/feeds",
@@ -49,28 +49,15 @@ gs = gspread.authorize(creds)
 def _normalize(txt):
     if txt is None:
         return ""
-    return "".join(
-        c
-        for c in unicodedata.normalize("NFD", str(txt))
-        if unicodedata.category(c) != "Mn"
-    ).lower().strip()
+    return "".join(c for c in unicodedata.normalize("NFD", str(txt))
+                   if unicodedata.category(c) != "Mn").lower().strip()
 
 def validate_credentials(user_input, pass_input):
-    """
-    Busca dinamicamente as colunas 'usuario' e 'senha' na planilha,
-    normaliza os cabeçalhos e compara com o input do usuário.
-    """
     sheet = gs.open("LoginSimulador").sheet1
     for row in sheet.get_all_records():
-        user_row = ""
-        pass_row = ""
-        # percorre cada coluna da linha e identifica pelos cabeçalhos
-        for header, value in row.items():
-            hdr = _normalize(header)
-            if hdr == "usuario":
-                user_row = _normalize(value)
-            elif hdr == "senha":
-                pass_row = str(value).strip()
+        # identifica coluna 'usuario' e 'senha'
+        user_row = _normalize(row.get("usuario",""))
+        pass_row = str(row.get("senha","")).strip()
         if user_row == _normalize(user_input) and pass_row == pass_input.strip():
             return True
     return False
@@ -78,23 +65,17 @@ def validate_credentials(user_input, pass_input):
 def count_cases(user):
     try:
         sheet = gs.open("LogsSimulador").sheet1
-        return sum(
-            1
-            for r in sheet.get_all_records()
-            if _normalize(r.get("usuario")) == _normalize(user)
-        )
+        return sum(1 for r in sheet.get_all_records()
+                   if _normalize(r.get("usuario")) == _normalize(user))
     except:
         return 0
 
 def calculate_average(user):
     try:
         sheet = gs.open("notasSimulador").sheet1
-        notes = [
-            float(r["nota"])
-            for r in sheet.get_all_records()
-            if _normalize(r.get("usuario")) == _normalize(user)
-        ]
-        return round(sum(notes) / len(notes), 2) if notes else 0.0
+        notas = [float(r["nota"]) for r in sheet.get_all_records()
+                 if _normalize(r.get("usuario")) == _normalize(user)]
+        return round(sum(notas)/len(notas),2) if notas else 0.0
     except:
         return 0.0
 
@@ -117,45 +98,39 @@ def extract_score(text):
     m = re.search(r"Nota:\s*(\d+(?:[.,]\d+)?)", text)
     return float(m.group(1).replace(",", ".")) if m else None
 
-# ====== SESSION STATE ======
-if "logged_in" not in st.session_state:
-    st.session_state.logged_in = False
-if "user" not in st.session_state:
-    st.session_state.user = ""
-if "thread_id" not in st.session_state:
-    st.session_state.thread_id = None
-if "history" not in st.session_state:
-    st.session_state.history = ""
-if "finished" not in st.session_state:
-    st.session_state.finished = False
-if "notes" not in st.session_state:
-    st.session_state.notes = ""
+# ====== SESSION STATE DEFAULTS ======
+st.session_state.setdefault("logged_in", False)
+st.session_state.setdefault("user", "")
+st.session_state.setdefault("thread_id", None)
+st.session_state.setdefault("history", "")
+st.session_state.setdefault("finished", False)
+st.session_state.setdefault("notes", "")
 
-# ====== TELA DE LOGIN ======
+# ====== LOGIN ======
 if not st.session_state.logged_in:
     st.title("🔐 Simulador Médico - Login")
     with st.form("login_form"):
         user_input = st.text_input("Usuário")
         pass_input = st.text_input("Senha", type="password")
-        if st.form_submit_button("Entrar"):
+        submitted  = st.form_submit_button("Entrar")
+        if submitted:
             if validate_credentials(user_input, pass_input):
                 st.session_state.user = user_input
                 st.session_state.logged_in = True
                 st.success("Login realizado com sucesso!")
-                st.experimental_rerun()
             else:
                 st.error("Usuário ou senha inválidos.")
     st.stop()
 
-# ====== APÓS LOGIN ======
+# ====== ÁREA PRINCIPAL (após login) ======
 st.title("🩺 Simulador Médico Interativo")
 st.markdown(f"👤 **{st.session_state.user}**")
 
 col1, col2 = st.columns(2)
-col1.metric("Casos finalizados",    count_cases(st.session_state.user))
-col2.metric("Média global",         calculate_average(st.session_state.user))
+col1.metric("Casos finalizados", count_cases(st.session_state.user))
+col2.metric("Média global",      calculate_average(st.session_state.user))
 
-# ====== ESPECIALIDADE ======
+# ====== SELEÇÃO DE ESPECIALIDADE ======
 speciality = st.radio(
     "Especialidade:",
     ["PSF", "Pediatria", "Emergências"],
@@ -169,7 +144,7 @@ assistant_used = (
 
 # ====== NOVA SIMULAÇÃO ======
 if st.button("➕ Nova Simulação"):
-    # confirmação se já há simulação ativa
+    # confirmação se já há simulação ativa e não finalizada
     if st.session_state.thread_id and not st.session_state.finished:
         confirm = st.checkbox(
             "⚠️ Simulação em andamento. Confirmar nova e perder progresso atual."
@@ -178,7 +153,7 @@ if st.button("➕ Nova Simulação"):
             st.warning("Aguardando confirmação para iniciar nova simulação.")
             st.stop()
 
-    # inicia a thread e gera paciente
+    # inicia thread e gera paciente
     st.session_state.thread_id = openai.beta.threads.create().id
     st.session_state.finished    = False
 
@@ -202,12 +177,11 @@ if st.button("➕ Nova Simulação"):
         thread_id=st.session_state.thread_id
     ).data
     st.session_state.history = next(
-        (m.content[0].text.value for m in msgs if m.role == "assistant"),
+        (m.content[0].text.value for m in msgs if m.role=="assistant"),
         ""
     )
-    st.experimental_rerun()
 
-# ====== EXIBE PACIENTE ======
+# ====== EXIBIR PACIENTE ======
 if st.session_state.history:
     st.subheader("👤 Paciente")
     st.info(st.session_state.history)
@@ -244,7 +218,7 @@ if st.session_state.thread_id and not st.session_state.finished:
                     thread_id=st.session_state.thread_id
                 ).data
                 resp = next(
-                    (m.content[0].text.value for m in msgs2 if m.role == "assistant"),
+                    (m.content[0].text.value for m in msgs2 if m.role=="assistant"),
                     ""
                 )
                 st.markdown(f"**Resposta do paciente:**\n\n{resp}")
@@ -290,7 +264,7 @@ if st.session_state.thread_id and not st.session_state.finished:
             thread_id=st.session_state.thread_id
         ).data
         final_resp = next(
-            (m.content[0].text.value for m in msgs3 if m.role == "assistant"),
+            (m.content[0].text.value for m in msgs3 if m.role=="assistant"),
             ""
         )
         st.subheader("📄 Resultado Final")
@@ -301,4 +275,3 @@ if st.session_state.thread_id and not st.session_state.finished:
         score = extract_score(final_resp)
         if score is not None:
             save_user_score(st.session_state.user, score)
-        st.experimental_rerun()
