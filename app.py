@@ -4,39 +4,51 @@ import unicodedata
 from oauth2client.service_account import ServiceAccountCredentials
 from datetime import datetime
 from openai import OpenAI
+import os
 import time
-import re
 
-# ========== CONFIG ==========
 
-client = OpenAI(api_key="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")
+# ======= CONFIG =======
+client = OpenAI(api_key="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")
 ASSISTANT_ID = "asst_3B1VTDFwJhCaOOdYaymPcMg0"
 ASSISTANT_PEDIATRIA_ID = "asst_T8Vtb86SlVd6jKnm7A6d8adL"
+
 scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
+creds = ServiceAccountCredentials.from_json_keyfile_name("credenciais.json", scope)
+gclient = gspread.authorize(creds)
 
-
+def remover_acentos(texto):
+    return ''.join((c for c in unicodedata.normalize('NFD', texto) if unicodedata.category(c) != 'Mn'))
 
 def normalizar_chave(chave):
     return remover_acentos(chave.strip().lower())
 
+def normalizar(texto):
+    return ''.join((c for c in unicodedata.normalize('NFD', str(texto)) if unicodedata.category(c) != 'Mn')).lower().strip()
+
 def validar_credenciais(usuario, senha):
-    credentials_dict = st.secrets["google_credentials"]
-    creds = ServiceAccountCredentials.from_json_keyfile_dict(dict(credentials_dict), scope)
-    client_g = gspread.authorize(creds)
-    sheet = client_g.open("LoginSimulador").sheet1
+    scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
+    cred_path = os.path.join(os.path.dirname(__file__), "credenciais.json")
+    creds = ServiceAccountCredentials.from_json_keyfile_name(cred_path, scope)
+    client = gspread.authorize(creds)
+    sheet = client.open("LoginSimulador").sheet1
     dados = sheet.get_all_records()
     for linha in dados:
-        linha_normalizada = {normalizar_chave(k): str(v).strip() for k, v in linha.items()}
+        linha_normalizada = {normalizar_chave(k): v.strip() for k, v in linha.items()}
         if linha_normalizada.get("usuario") == usuario and linha_normalizada.get("senha") == senha:
+            return True
+    return False
+
+    for linha in dados:
+        usuario_planilha = normalizar(linha.get("usuario", ""))
+        senha_planilha = str(linha.get("senha", "")).strip()
+        if normalizar(usuario_input) == usuario_planilha and senha_input.strip() == senha_planilha:
             return True
     return False
 
 def contar_casos_usuario(usuario):
     try:
-        credentials_dict = st.secrets["google_credentials"]
-        creds = ServiceAccountCredentials.from_json_keyfile_dict(dict(credentials_dict), scope)
-        client_g = gspread.authorize(creds)
-        sheet = client_g.open("LogsSimulador").worksheets()[0]
+        sheet = gclient.open("LogsSimulador").worksheets()[0]
         dados = sheet.get_all_records()
         return sum(1 for linha in dados if str(linha.get("usuario", "")).strip().lower() == usuario.lower())
     except Exception as e:
@@ -44,10 +56,7 @@ def contar_casos_usuario(usuario):
 
 def calcular_media_usuario(usuario):
     try:
-        credentials_dict = st.secrets["google_credentials"]
-        creds = ServiceAccountCredentials.from_json_keyfile_dict(dict(credentials_dict), scope)
-        client_g = gspread.authorize(creds)
-        sheet = client_g.open("notasSimulador").sheet1
+        sheet = gclient.open("notasSimulador").sheet1
         dados = sheet.get_all_records()
         notas = [float(l["nota"]) for l in dados if str(l.get("usuario", "")).strip().lower() == usuario.lower()]
         return round(sum(notas) / len(notas), 2) if notas else 0.0
@@ -55,24 +64,19 @@ def calcular_media_usuario(usuario):
         return 0.0
 
 def registrar_caso(usuario, texto):
-    credentials_dict = st.secrets["google_credentials"]
-    creds = ServiceAccountCredentials.from_json_keyfile_dict(dict(credentials_dict), scope)
-    client_g = gspread.authorize(creds)
-    sheet = client_g.open("LogsSimulador").worksheets()[0]
+    sheet = gclient.open("LogsSimulador").worksheets()[0]
     datahora = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     linha = [usuario, datahora, texto, "IA"]
     sheet.append_row(linha)
 
 def salvar_nota_usuario(usuario, nota):
-    credentials_dict = st.secrets["google_credentials"]
-    creds = ServiceAccountCredentials.from_json_keyfile_dict(dict(credentials_dict), scope)
-    client_g = gspread.authorize(creds)
-    sheet = client_g.open("notasSimulador").sheet1
+    sheet = gclient.open("notasSimulador").sheet1
     datahora = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     linha = [usuario, str(nota), datahora]
     sheet.append_row(linha, value_input_option="USER_ENTERED")
 
 def extrair_nota(texto):
+    import re
     try:
         match = re.search(r"nota\s*[:\-]?\s*(\d+(?:[\.,]\d+)?)(?:\s*/?\s*10)?", texto, re.IGNORECASE)
         if not match:
@@ -82,8 +86,7 @@ def extrair_nota(texto):
     except:
         return None
 
-# ========== INTERFACE STREAMLIT ==========
-
+# ======= INTERFACE STREAMLIT =======
 st.set_page_config(page_title="Simulador Médico", layout="centered")
 
 if "logado" not in st.session_state:
@@ -99,7 +102,7 @@ if "prompt_inicial" not in st.session_state:
 
 st.title("🩺 Simulador Médico Interativo")
 
-# ========== LOGIN ==========
+# ======= LOGIN =======
 if not st.session_state.logado:
     with st.form("login_form"):
         usuario = st.text_input("Usuário")
@@ -113,7 +116,7 @@ if not st.session_state.logado:
             else:
                 st.error("Usuário ou senha inválido.")
 
-# ========== ÁREA LOGADA ==========
+# ======= ÁREA LOGADA =======
 if st.session_state.logado:
     st.markdown(f"👤 **Usuário:** {st.session_state.usuario}")
     col1, col2 = st.columns(2)
@@ -151,10 +154,7 @@ if st.session_state.logado:
         if st.button("Enviar"):
             if pergunta.strip() != "":
                 client.beta.threads.messages.create(thread_id=st.session_state.thread_id, role="user", content=pergunta)
-                run = client.beta.threads.runs.create(
-                    thread_id=st.session_state.thread_id,
-                    assistant_id=ASSISTANT_PEDIATRIA_ID if especialidade == "Pediatria" else ASSISTANT_ID
-                )
+                run = client.beta.threads.runs.create(thread_id=st.session_state.thread_id, assistant_id=ASSISTANT_PEDIATRIA_ID if especialidade == "Pediatria" else ASSISTANT_ID)
                 with st.spinner("Pensando..."):
                     while True:
                         status = client.beta.threads.runs.retrieve(thread_id=st.session_state.thread_id, run_id=run.id)
@@ -164,7 +164,7 @@ if st.session_state.logado:
                 mensagens = client.beta.threads.messages.list(thread_id=st.session_state.thread_id).data
                 for msg in mensagens:
                     if msg.role == "assistant":
-                        st.markdown(f"**Resposta do paciente:** {msg.content[0].text.value}")
+                        st.markdown(f"**Resposta do paciente:**{msg.content[0].text.value}")
                         break
             else:
                 st.warning("Digite uma pergunta antes de enviar.")
@@ -178,10 +178,7 @@ if st.session_state.logado:
                 "3. Gere uma nota objetiva de 0 a 10 com base na performance do médico. Escreva obrigatoriamente no formato exato: Nota: X/10.\n"
             )
             client.beta.threads.messages.create(thread_id=st.session_state.thread_id, role="user", content=mensagem_final)
-            run = client.beta.threads.runs.create(
-                thread_id=st.session_state.thread_id,
-                assistant_id=ASSISTANT_PEDIATRIA_ID if especialidade == "Pediatria" else ASSISTANT_ID
-            )
+            run = client.beta.threads.runs.create(thread_id=st.session_state.thread_id, assistant_id=ASSISTANT_PEDIATRIA_ID if especialidade == "Pediatria" else ASSISTANT_ID)
             with st.spinner("Gerando relatório da consulta..."):
                 while True:
                     status = client.beta.threads.runs.retrieve(thread_id=st.session_state.thread_id, run_id=run.id)
