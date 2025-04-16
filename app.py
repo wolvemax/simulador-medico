@@ -1,21 +1,26 @@
 import streamlit as st
-import gspread
 import unicodedata
 from oauth2client.service_account import ServiceAccountCredentials
 from datetime import datetime
 from openai import OpenAI
 import os
 import time
-
+import openai
+import gspread
+from oauth2client.service_account import ServiceAccountCredentials
 
 # ======= CONFIG =======
-client = OpenAI(api_key="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")
-ASSISTANT_ID = "asst_3B1VTDFwJhCaOOdYaymPcMg0"
-ASSISTANT_PEDIATRIA_ID = "asst_T8Vtb86SlVd6jKnm7A6d8adL"
+# 🔑 Carregando credenciais OpenAI via secrets
+openai.api_key = st.secrets["openai"]["api_key"]
+ASSISTANT_ID = st.secrets["openai"]["assistant_id"]
+ASSISTANT_PEDIATRIA_ID = st.secrets["openai"]["assistant_pediatria_id"]
 
+# 🔐 Escopo e autenticação Google Sheets
 scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
-creds = ServiceAccountCredentials.from_json_keyfile_name("credenciais.json", scope)
-gclient = gspread.authorize(creds)
+google_creds = st.secrets["google_credentials"]
+
+creds = ServiceAccountCredentials.from_json_keyfile_dict(google_creds, scope)
+client_gspread = gspread.authorize(creds
 
 def remover_acentos(texto):
     return ''.join((c for c in unicodedata.normalize('NFD', texto) if unicodedata.category(c) != 'Mn'))
