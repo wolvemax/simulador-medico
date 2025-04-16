@@ -50,9 +50,11 @@ def normalizar(txt):
 def validar(usuario, senha):
     sheet = gs.open("LoginSimulador").sheet1
     for l in sheet.get_all_records():
-        if normalizar(l["usuario"]) == normalizar(usuario) and str(l["senha"]).strip() == senha:
-            return True
+        if "usuario" in l and "senha" in l:
+            if normalizar(l["usuario"]) == normalizar(usuario) and str(l["senha"]).strip() == senha:
+                return True
     return False
+
 
 def contar_casos(usuario):
     dados = gs.open("LogsSimulador").sheet1.get_all_records()
