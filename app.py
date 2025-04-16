@@ -7,19 +7,51 @@ import time
 import openai
 import gspread
 
+# ======= ESTILO PERSONALIZADO =======
+st.markdown("""
+    <style>
+    .title {
+        font-size: 36px;
+        font-weight: bold;
+        color: #005b96;
+        margin-bottom: 10px;
+    }
+    .stButton > button {
+        background-color: #005b96;
+        color: white;
+        border-radius: 8px;
+        padding: 0.5em 1em;
+        font-weight: 600;
+    }
+    .stTextInput > div > input {
+        border-radius: 6px;
+        border: 1px solid #ccc;
+    }
+    .stRadio > div {
+        background-color: #f0f2f6;
+        padding: 1em;
+        border-radius: 10px;
+    }
+    .metric-container {
+        background-color: #f9f9f9;
+        padding: 10px;
+        border-radius: 10px;
+        box-shadow: 0px 1px 4px rgba(0,0,0,0.1);
+    }
+    </style>
+""", unsafe_allow_html=True)
+
 # ======= CONFIG =======
-# 🔑 Carregando credenciais OpenAI via secrets
 openai.api_key = st.secrets["openai"]["api_key"]
 ASSISTANT_ID = st.secrets["assistants"]["default"]
 ASSISTANT_PEDIATRIA_ID = st.secrets["assistants"]["pediatria"]
 
-# 🔐 Escopo e autenticação Google Sheets
 scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
 google_creds = dict(st.secrets["google_credentials"])
 creds = ServiceAccountCredentials.from_json_keyfile_dict(google_creds, scope)
 client_gspread = gspread.authorize(creds)
 
-# ======= FUNÇÕES DE AUTENTICAÇÃO E UTILITÁRIOS =======
+# ======= FUNÇÕES =======
 def remover_acentos(texto):
     return ''.join((c for c in unicodedata.normalize('NFD', texto) if unicodedata.category(c) != 'Mn'))
 
@@ -30,10 +62,7 @@ def normalizar(texto):
     return ''.join((c for c in unicodedata.normalize('NFD', str(texto)) if unicodedata.category(c) != 'Mn')).lower().strip()
 
 def validar_credenciais(usuario, senha):
-    scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
-    creds = ServiceAccountCredentials.from_json_keyfile_dict(dict(st.secrets["google_credentials"]), scope)
-    client = gspread.authorize(creds)
-    sheet = client.open("LoginSimulador").sheet1
+    sheet = client_gspread.open("LoginSimulador").sheet1
     dados = sheet.get_all_records()
     for linha in dados:
         linha_normalizada = {normalizar_chave(k): v.strip() for k, v in linha.items()}
@@ -46,7 +75,7 @@ def contar_casos_usuario(usuario):
         sheet = client_gspread.open("LogsSimulador").worksheets()[0]
         dados = sheet.get_all_records()
         return sum(1 for linha in dados if str(linha.get("usuario", "")).strip().lower() == usuario.lower())
-    except Exception as e:
+    except:
         return 0
 
 def calcular_media_usuario(usuario):
@@ -61,27 +90,23 @@ def calcular_media_usuario(usuario):
 def registrar_caso(usuario, texto):
     sheet = client_gspread.open("LogsSimulador").worksheets()[0]
     datahora = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    linha = [usuario, datahora, texto, "IA"]
-    sheet.append_row(linha)
+    sheet.append_row([usuario, datahora, texto, "IA"])
 
 def salvar_nota_usuario(usuario, nota):
     sheet = client_gspread.open("notasSimulador").sheet1
     datahora = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    linha = [usuario, str(nota), datahora]
-    sheet.append_row(linha, value_input_option="USER_ENTERED")
+    sheet.append_row([usuario, str(nota), datahora], value_input_option="USER_ENTERED")
 
 def extrair_nota(texto):
     import re
-    try:
-        match = re.search(r"nota\s*[:\-]?\s*(\d+(?:[\.,]\d+)?)(?:\s*/?\s*10)?", texto, re.IGNORECASE)
-        if not match:
-            match = re.search(r"(\d+(?:[\.,]\d+)?)\s*/\s*10", texto)
-        if match:
-            return float(match.group(1).replace(",", "."))
-    except:
-        return None
+    match = re.search(r"nota\s*[:\-]?\s*(\d+(?:[\.,]\d+)?)(?:\s*/?\s*10)?", texto, re.IGNORECASE)
+    if not match:
+        match = re.search(r"(\d+(?:[\.,]\d+)?)\s*/\s*10", texto)
+    if match:
+        return float(match.group(1).replace(",", "."))
+    return None
 
-# ======= INTERFACE STREAMLIT =======
+# ======= INTERFACE =======
 st.set_page_config(page_title="Simulador Médico", layout="centered")
 
 if "logado" not in st.session_state:
@@ -95,9 +120,8 @@ if "consulta_finalizada" not in st.session_state:
 if "prompt_inicial" not in st.session_state:
     st.session_state.prompt_inicial = ""
 
-st.title("🩺 Simulador Médico Interativo")
+st.markdown('<div class="title">🩺 Simulador Médico Interativo</div>', unsafe_allow_html=True)
 
-# ======= LOGIN =======
 if not st.session_state.logado:
     with st.form("login_form"):
         usuario = st.text_input("Usuário")
@@ -111,12 +135,17 @@ if not st.session_state.logado:
             else:
                 st.error("Usuário ou senha inválido.")
 
-# ======= ÁREA LOGADA =======
 if st.session_state.logado:
-    st.markdown(f"👤 **Usuário:** {st.session_state.usuario}")
+    st.markdown(f"👤 **Usuário:** `{st.session_state.usuario}`")
     col1, col2 = st.columns(2)
-    col1.metric("📋 Casos finalizados", contar_casos_usuario(st.session_state.usuario))
-    col2.metric("📊 Média global", calcular_media_usuario(st.session_state.usuario))
+    with col1:
+        st.markdown("<div class='metric-container'>", unsafe_allow_html=True)
+        st.metric("📋 Casos finalizados", contar_casos_usuario(st.session_state.usuario))
+        st.markdown("</div>", unsafe_allow_html=True)
+    with col2:
+        st.markdown("<div class='metric-container'>", unsafe_allow_html=True)
+        st.metric("📊 Média global", calcular_media_usuario(st.session_state.usuario))
+        st.markdown("</div>", unsafe_allow_html=True)
 
     especialidade = st.radio("Especialidade:", ["PSF", "Pediatria"])
 
@@ -147,7 +176,7 @@ if st.session_state.logado:
     if st.session_state.thread_id and not st.session_state.consulta_finalizada:
         pergunta = st.text_area("Digite sua pergunta ou conduta:")
         if st.button("Enviar"):
-            if pergunta.strip() != "":
+            if pergunta.strip():
                 openai.beta.threads.messages.create(thread_id=st.session_state.thread_id, role="user", content=pergunta)
                 run = openai.beta.threads.runs.create(thread_id=st.session_state.thread_id, assistant_id=ASSISTANT_PEDIATRIA_ID if especialidade == "Pediatria" else ASSISTANT_ID)
                 with st.spinner("Pensando..."):
