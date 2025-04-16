@@ -18,10 +18,18 @@ from dotenv import load_dotenv
 from datetime import datetime
 from PyQt5.QtCore import QTimer
 from openai import OpenAI
+import streamlit as st
+from audio_recorder_streamlit import audio_recorder
 
 client = OpenAI(api_key="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")
 ASSISTANT_ID = "asst_3B1VTDFwJhCaOOdYaymPcMg0"
 ASSISTANT_PEDIATRIA_ID = "asst_T8Vtb86SlVd6jKnm7A6d8adL"
+
+st.title("Gravador de Áudio")
+
+audio_bytes = audio_recorder()
+if audio_bytes:
+    st.audio(audio_bytes, format="audio/wav")
 
 def remover_acentos(texto):
     return ''.join((c for c in unicodedata.normalize('NFD', texto) if unicodedata.category(c) != 'Mn'))
