@@ -1,13 +1,15 @@
-{
-  "type": "service_account",
-  "project_id": "groovy-catalyst-227902",
-  "private_key_id": "42aa4dab94c958c300e05cf5cb6fb5b8fda0dae0",
-  "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQDRDIyUiiLpGDL2\nuEjSECSZSpuMdyicfAjTv3k56kb2HfRNMB8pNFaBarzuGOKZt5RUF/pKn+Xs95pE\niUeFNMBGBCjgeKcF515ppMn/Ur6PLVIaj1oU3HgO37pqtwVmXZ8XekGz/hkHrF/l\n7vhdX3yZzLuh9DeiW2Lq81Mx6yi1XIaV8HXAYD9tB1/2+k5MthoMP66iMzlonYxB\nlLM4N+bV8jTbjLW7mlkgqpNGVOfSKvf416K6IV+2URBcdigpE2oSoKw0Ak1Cek+T\nfWZWe/m7r6tF+c0flPSlwtQ+WuPLIuAMt2zMt/6BUdf6tdXePWzFnYhdoyPi/2PL\nGrSI/QnPAgMBAAECggEALeVv7eLAFGYENmeyUTBLIL6hFP9KUsTmmTq2DlGRv9JG\nwzWX+c9sWKCLF0kuYupLrgTPplehvtuDqp1rLuMsfZLHOLU0klbAQzhzQtOzU7Lz\nDjK/58mZsEZNYsWI8XcHiTuFtlNIwocFTPGg5Lskm423+jAokMQ4nPXMI68J8nsW\nj2GmU8mlOFRTssAT9Mj+kxNzUdY9rZc1B6ZvnNBIRsNcakc3FYUtJ9jstZhn/+dc\ngCfKeHMly2zlK7uzlMWvE32dzfZexWnWuqK37OuK6CVKpiYpV54hMkFwlQLSnfFv\nEOZR0AHneXan/aDAtciDvc8AmD1sae8gs5+ajZCIcQKBgQD5ocyzb/tWE/5VsunS\ndq3AUxqna9W0VGzM87ouS6a3Db/eGxp970RtOPvY83hBenEWjwYsFK2p09ZeGCB7\n0vvUWpOqe8QfaA0X52K/xH/P5ntqKYU59VILHc13oBh4PwxIwZrnuCqDGPS294OY\nXkwi7ANmMBDBf4iqTnu1pIzoEQKBgQDWYbnHANsISdugJOojaY5F9H+OP5kohyfH\nKWzTs9tngXZPW1Bu9ULvL+zrMGNMP1g7HIHAzIw7fgf/pFn0mVLFx+iwIhWVIXNF\n6kwDcSQ+MUGeqZf7J37G1HGbKrPC/Xd+sKb9uNA2Exx0tbd6eObcp6NKCWHxYqB2\nTwYPv0uz3wKBgQCjXIchRj8sbZkbbCIoYRIDsl7XAXKwuC8bUMSeV1Oap5zQNNx5\nXYNiFtB5gZtI/l/Ta3WWk1GyubanjRJ09fVnWn8YKjaGdwlag0nURTt/Sk2pg9Jz\nw18Vd0Nm7ZYV2uynEEvXKGZptIMw2Xl81PjuQZVX4kyU1GkTSpkanby4gQKBgA/v\n4+evYJkVJIabN+y6BCGfM3xXrgMdSQ+9PKHgVQc00J7Fow0cnoU5gttZFYitjNmY\nHO1AR4yEqgOPLEDKxSR+4AV4AzK68d7YtB3tY0xcTQyGfw3kub/+OxPV8NcmEKQS\nbdeezZu3f/4NJD6ujjsJG1J9sBJJyrQA2+p/xhjxAoGBAO5wUehT9KG/z4FOWMOh\nu4x2J+Er8dmoeekrE28KeEWrvFpYtw1urEzsSsrFdvF4NxI2SNiLKikYbz/gST6g\nfXhQ982M0fIt5GlZM8flBllumxGpRGa7cvg2Sh/0n1Obq8eu7cX9GG/vGQNpbZIV\nhjxitndGD0G/Sh/31dveHbx6\n-----END PRIVATE KEY-----\n",
-  "client_email": "api-simulador-google@groovy-catalyst-227902.iam.gserviceaccount.com",
-  "client_id": "104006544019420266416",
-  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
-  "token_uri": "https://oauth2.googleapis.com/token",
-  "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
-  "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/api-simulador-google%40groovy-catalyst-227902.iam.gserviceaccount.com",
-  "universe_domain": "googleapis.com"
-}
+[google_credentials]
+type = "service_account"
+project_id = "groovy-catalyst-227902"
+private_key_id = "42aa4dab94c958c300e05cf5cb6fb5b8fda0dae0"
+private_key = """-----BEGIN PRIVATE KEY-----
+MIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQDRDIyUiiLpGDL2
+... (continua sua chave aqui)
+-----END PRIVATE KEY-----"""
+client_email = "api-simulador-google@groovy-catalyst-227902.iam.gserviceaccount.com"
+client_id = "104006544019420266416"
+auth_uri = "https://accounts.google.com/o/oauth2/auth"
+token_uri = "https://oauth2.googleapis.com/token"
+auth_provider_x509_cert_url = "https://www.googleapis.com/oauth2/v1/certs"
+client_x509_cert_url = "https://www.googleapis.com/robot/v1/metadata/x509/api-simulador-google%40groovy-catalyst-227902.iam.gserviceaccount.com"
+universe_domain = "googleapis.com"
