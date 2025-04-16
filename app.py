@@ -158,7 +158,7 @@ if not st.session_state.logado:
             if validar_credenciais(usuario, senha):
                 st.session_state.usuario = usuario
                 st.session_state.logado = True
-                st.experimental_rerun()
+                st.rerun()
             else:
                 st.error("Usuário ou senha inválidos.")
     st.stop()
