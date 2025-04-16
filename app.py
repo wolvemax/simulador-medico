@@ -9,10 +9,7 @@ import gspread
 
 # 🚨 ESTA LINHA DEVE VIR IMEDIATAMENTE DEPOIS DOS IMPORTS
 st.set_page_config(page_title="Simulador Médico", layout="centered")
-
-# ======= ESTILO PERSONALIZADO =======
-st.markdown(\"\"\" ... \"\"\", unsafe_allow_html=True)
-            
+=   
 # ======= ESTILO PERSONALIZADO =======
 st.markdown("""
     <style>
