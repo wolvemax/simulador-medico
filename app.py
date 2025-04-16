@@ -143,8 +143,26 @@ if img_base64:
     )
 
 # 📑 Instruções ou Modo
-modo = st.sidebar.radio("Modo de operação:", ["Simulação Clínica", "Histórico", "Sobre o Projeto"])
+# ========== BLOQUEIO DE INTERFACE ATÉ LOGIN ==========
+if "logado" not in st.session_state:
+    st.session_state.logado = False
 
+if not st.session_state.logado:
+    st.markdown('<div class="main-title">🔐 Acesso Restrito</div>', unsafe_allow_html=True)
+    st.warning("Por favor, faça login para acessar o simulador.")
+    with st.form("login_form"):
+        usuario = st.text_input("Usuário")
+        senha = st.text_input("Senha", type="password")
+        submitted = st.form_submit_button("Entrar")
+        if submitted:
+            if validar_credenciais(usuario, senha):
+                st.session_state.usuario = usuario
+                st.session_state.logado = True
+                st.experimental_rerun()
+            else:
+                st.error("Usuário ou senha inválidos.")
+    st.stop()
+    
 if modo == "Sobre o Projeto":
     st.sidebar.info("""
         Este simulador é voltado ao treinamento médico em ambiente virtual interativo, com apoio de IA generativa.
