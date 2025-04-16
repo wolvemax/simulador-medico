@@ -1,10 +1,4 @@
-from pathlib import Path
 
-# Código atualizado do app com:
-# ✅ text_area estilizada com contorno visível
-# ✅ confirmação antes de iniciar nova simulação
-
-app_code_updated = """
 import streamlit as st
 import unicodedata
 from oauth2client.service_account import ServiceAccountCredentials
