@@ -12,8 +12,8 @@ from oauth2client.service_account import ServiceAccountCredentials
 # ======= CONFIG =======
 # 🔑 Carregando credenciais OpenAI via secrets
 openai.api_key = st.secrets["openai"]["api_key"]
-ASSISTANT_ID = st.secrets["openai"]["assistant_id"]
-ASSISTANT_PEDIATRIA_ID = st.secrets["openai"]["assistant_pediatria_id"]
+ASSISTANT_ID = st.secrets["assistants"]["default"]
+ASSISTANT_PEDIATRIA_ID = st.secrets["assistants"]["pediatria"]
 
 # 🔐 Escopo e autenticação Google Sheets
 scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
