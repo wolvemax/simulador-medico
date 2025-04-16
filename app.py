@@ -10,6 +10,23 @@ import base64
 # ======= CONFIGURAÇÕES =======
 st.set_page_config(page_title="Simulador Médico IA", page_icon="🩺", layout="wide")
 
+# 💅 CSS para destacar text_area e centralizar spinner
+st.markdown(\"\"\"
+<style>
+textarea {
+    border: 2px solid #003366 !important;
+    border-radius: 8px !important;
+    box-shadow: 0px 0px 5px rgba(0, 51, 102, 0.4);
+    padding: 0.5rem;
+}
+div[data-testid="stSpinner"] > div {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+</style>
+\"\"\", unsafe_allow_html=True)
+
 openai.api_key = st.secrets["openai"]["api_key"]
 ASSISTANT_ID = st.secrets["assistants"]["default"]
 ASSISTANT_PEDIATRIA_ID = st.secrets["assistants"]["pediatria"]
@@ -88,6 +105,8 @@ if "consulta_finalizada" not in st.session_state:
     st.session_state.consulta_finalizada = False
 if "prompt_inicial" not in st.session_state:
     st.session_state.prompt_inicial = ""
+if "anotacoes" not in st.session_state:
+    st.session_state.anotacoes = ""
 
 # ======= LOGIN =======
 if not st.session_state.logado:
@@ -123,10 +142,14 @@ else:
     assistant_id_usado = ASSISTANT_ID
 
 if st.button("➕ Nova Simulação"):
+    if st.session_state.thread_id and not st.session_state.consulta_finalizada:
+        st.warning("⚠️ Uma simulação está em andamento e não foi finalizada. Deseja realmente iniciar uma nova e perder o progresso atual?")
+        if not st.button("Confirmar Nova Simulação"):
+            st.stop()
+
     st.session_state.thread_id = openai.beta.threads.create().id
     st.session_state.consulta_finalizada = False
 
-    # Prompt inicial por especialidade
     if especialidade == "Emergências":
         st.session_state.prompt_inicial = ""
     elif especialidade == "Pediatria":
@@ -159,24 +182,29 @@ if st.session_state.historico:
     st.info(st.session_state.historico)
 
 if st.session_state.thread_id and not st.session_state.consulta_finalizada:
-    pergunta = st.text_area("Digite sua pergunta ou conduta:")
-    if st.button("Enviar"):
-        if pergunta.strip():
-            openai.beta.threads.messages.create(thread_id=st.session_state.thread_id, role="user", content=pergunta)
-            run = openai.beta.threads.runs.create(thread_id=st.session_state.thread_id, assistant_id=assistant_id_usado)
-            with st.spinner("Pensando..."):
-                while True:
-                    status = openai.beta.threads.runs.retrieve(thread_id=st.session_state.thread_id, run_id=run.id)
-                    if status.status == "completed":
+    col_pergunta, col_anotacoes = st.columns([2, 1])
+    with col_pergunta:
+        pergunta = st.text_area("Digite sua pergunta ou conduta:")
+        if st.button("Enviar"):
+            if pergunta.strip():
+                openai.beta.threads.messages.create(thread_id=st.session_state.thread_id, role="user", content=pergunta)
+                run = openai.beta.threads.runs.create(thread_id=st.session_state.thread_id, assistant_id=assistant_id_usado)
+                with st.spinner("Pensando..."):
+                    while True:
+                        status = openai.beta.threads.runs.retrieve(thread_id=st.session_state.thread_id, run_id=run.id)
+                        if status.status == "completed":
+                            break
+                        time.sleep(1)
+                mensagens = openai.beta.threads.messages.list(thread_id=st.session_state.thread_id).data
+                for msg in mensagens:
+                    if msg.role == "assistant":
+                        st.markdown(f"**Resposta do paciente:** {msg.content[0].text.value}")
                         break
-                    time.sleep(1)
-            mensagens = openai.beta.threads.messages.list(thread_id=st.session_state.thread_id).data
-            for msg in mensagens:
-                if msg.role == "assistant":
-                    st.markdown(f"**Resposta do paciente:** {msg.content[0].text.value}")
-                    break
-        else:
-            st.warning("Digite uma pergunta antes de enviar.")
+            else:
+                st.warning("Digite uma pergunta antes de enviar.")
+
+    with col_anotacoes:
+        st.session_state.anotacoes = st.text_area("📝 Suas anotações de anamnese:", value=st.session_state.anotacoes, height=300)
 
 if st.session_state.thread_id and not st.session_state.consulta_finalizada:
     if st.button("✅ Finalizar Consulta"):
@@ -188,7 +216,7 @@ if st.session_state.thread_id and not st.session_state.consulta_finalizada:
         )
         openai.beta.threads.messages.create(thread_id=st.session_state.thread_id, role="user", content=mensagem_final)
         run = openai.beta.threads.runs.create(thread_id=st.session_state.thread_id, assistant_id=assistant_id_usado)
-        with st.spinner("Gerando relatório da consulta..."):
+        with st.spinner("📝 Gerando relatório da consulta..."):
             while True:
                 status = openai.beta.threads.runs.retrieve(thread_id=st.session_state.thread_id, run_id=run.id)
                 if status.status == "completed":
@@ -205,4 +233,11 @@ if st.session_state.thread_id and not st.session_state.consulta_finalizada:
                 nota = extrair_nota(resposta)
                 if nota is not None:
                     salvar_nota_usuario(st.session_state.usuario, nota)
+                    st.experimental_rerun()
                 break
+"""
+
+# Salvar o novo código em arquivo
+arquivo_final = Path("/mnt/data/app_simulador_final.py")
+arquivo_final.write_text(codigo_completo)
+arquivo_final
