@@ -20,7 +20,7 @@ scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/au
 google_creds = st.secrets["google_credentials"]
 
 creds = ServiceAccountCredentials.from_json_keyfile_dict(google_creds, scope)
-client_gspread = gspread.authorize(creds
+client_gspread = gspread.authorize(creds)
 
 def remover_acentos(texto):
     return ''.join((c for c in unicodedata.normalize('NFD', texto) if unicodedata.category(c) != 'Mn'))
