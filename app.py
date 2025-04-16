@@ -54,13 +54,36 @@ def _normalize(txt):
 
 def validate_credentials(user_input, pass_input):
     sheet = gs.open("LoginSimulador").sheet1
-    for row in sheet.get_all_records():
-        # identifica coluna 'usuario' e 'senha'
-        user_row = _normalize(row.get("usuario",""))
-        pass_row = str(row.get("senha","")).strip()
-        if user_row == _normalize(user_input) and pass_row == pass_input.strip():
+    registros = sheet.get_all_records()
+
+    if not registros:
+        return False
+
+    # Detecta as chaves corretas para usuário e senha
+    exemplo = registros[0]
+    user_key = None
+    pass_key = None
+
+    for chave in exemplo.keys():
+        chave_norm = _normalize(chave)
+        if chave_norm in ["usuario", "usuário", "user", "login"]:
+            user_key = chave
+        elif chave_norm in ["senha", "password", "pass"]:
+            pass_key = chave
+
+    if not user_key or not pass_key:
+        st.error("Erro: Colunas de usuário e senha não foram encontradas na planilha.")
+        return False
+
+    # Validação usando as chaves detectadas
+    for linha in registros:
+        user_val = _normalize(linha.get(user_key, ""))
+        pass_val = str(linha.get(pass_key, "")).strip()
+        if user_val == _normalize(user_input) and pass_val == pass_input.strip():
             return True
+
     return False
+
 
 def count_cases(user):
     try:
