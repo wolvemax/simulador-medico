@@ -1,0 +1,9 @@
+PyQt5
+gspread
+oauth2client
+numpy
+sounddevice
+scipy
+qdarkstyle
+python-dotenv
+openai
