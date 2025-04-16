@@ -149,7 +149,7 @@ with col3:
     st.metric("🕒 Simulações Hoje", "Atualizando...")
     st.markdown("</div>", unsafe_allow_html=True)
 
-if especialidade = st.radio("Especialidade:", ["PSF", "Pediatria", "Emergências"])
+especialidade = st.radio("Especialidade:", ["PSF", "Pediatria", "Emergências"])
 
 if especialidade == "Pediatria":
     assistant_id_usado = ASSISTANT_PEDIATRIA_ID
