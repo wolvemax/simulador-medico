@@ -13,9 +13,12 @@ client = OpenAI(api_key="sk-proj-mWrlTTycqD50WUGTZuwXxm4y8xPeKf_EdUuDV0d-8K5yBYm
 ASSISTANT_ID = "asst_3B1VTDFwJhCaOOdYaymPcMg0"
 ASSISTANT_PEDIATRIA_ID = "asst_T8Vtb86SlVd6jKnm7A6d8adL"
 
+credentials_json = st.secrets["GOOGLE_SERVICE_ACCOUNT"]
+credentials_dict = json.loads(credentials_json)
+
 scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
-creds = ServiceAccountCredentials.from_json_keyfile_name("credenciais.json", scope)
-gclient = gspread.authorize(creds)
+creds = service_account.Credentials.from_service_account_info(credentials_dict, scopes=scope)
+client = gspread.authorize(creds)
 
 def remover_acentos(texto):
     return ''.join((c for c in unicodedata.normalize('NFD', texto) if unicodedata.category(c) != 'Mn'))
