@@ -163,12 +163,7 @@ if not st.session_state.logado:
                 st.error("Usuário ou senha inválidos.")
     st.stop()
     
-if modo == "Sobre o Projeto":
-    st.sidebar.info("""
-        Este simulador é voltado ao treinamento médico em ambiente virtual interativo, com apoio de IA generativa.
 
-        Criado por: [Seu Nome]
-    """)
 
 # ✅ Título Estilizado
 st.markdown('<div class="main-title">🩺 Simulador Médico Interativo com IA</div>', unsafe_allow_html=True)
