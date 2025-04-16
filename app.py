@@ -159,25 +159,45 @@ else:
     assistant_id_usado = ASSISTANT_ID
 
 if st.button("➕ Nova Simulação"):
+    assistant_id_usado = ...
     st.session_state.thread_id = openai.beta.threads.create().id
     st.session_state.consulta_finalizada = False
-if especialidade == "Emergências":
-    st.session_state.prompt_inicial = ""  # usa o prompt de sistema do Assistant
-else:
-    st.session_state.prompt_inicial = "Iniciar nova simulação clínica com paciente simulado. Apenas início da consulta com identificação e queixa principal."
-    openai.beta.threads.messages.create(thread_id=st.session_state.thread_id, role="user", content=st.session_state.prompt_inicial)
-    run = openai.beta.threads.runs.create(thread_id=st.session_state.thread_id, assistant_id=assistant_id_usado)
+
+    # prompt inicial só se for Emergências?
+    if especialidade == "Emergências":
+        st.session_state.prompt_inicial = ""
+    elif especialidade == "Pediatria":
+        st.session_state.prompt_inicial = "Iniciar nova simulação clínica com paciente pediátrico com identificação e queixa principal."
+    else:
+        st.session_state.prompt_inicial = "Iniciar nova simulação clínica com paciente simulado. Apenas início da consulta com identificação e queixa principal."
+
+    # ✅ Só envia mensagem se houver prompt
+    if st.session_state.prompt_inicial:
+        openai.beta.threads.messages.create(
+            thread_id=st.session_state.thread_id,
+            role="user",
+            content=st.session_state.prompt_inicial
+        )
+
+    # agora roda o assistant normalmente
+    run = openai.beta.threads.runs.create(
+        thread_id=st.session_state.thread_id,
+        assistant_id=assistant_id_usado
+    )
+
     with st.spinner("Gerando paciente..."):
         while True:
             status = openai.beta.threads.runs.retrieve(thread_id=st.session_state.thread_id, run_id=run.id)
             if status.status == "completed":
                 break
             time.sleep(1)
+
     mensagens = openai.beta.threads.messages.list(thread_id=st.session_state.thread_id).data
     for msg in mensagens:
         if msg.role == "assistant":
             st.session_state.historico = msg.content[0].text.value
             break
+
 
 if st.session_state.historico:
     st.markdown("### 👤 Paciente")
