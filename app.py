@@ -9,6 +9,7 @@ import time
 
 # Carregar credenciais do st.secrets
 credentials_dict = st.secrets["gspread_service_account"]
+scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
 creds = ServiceAccountCredentials.from_json_keyfile_dict(credentials_dict, scope)
 client = gspread.authorize(creds)
 
