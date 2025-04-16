@@ -1,98 +1,118 @@
 import streamlit as st
-import unicodedata, time, re, openai, gspread
+import unicodedata
+import time
+import re
+import openai
+import gspread
 from datetime import datetime
 from oauth2client.service_account import ServiceAccountCredentials
 
-# ─────────── CONFIG. VISUAL ───────────
-st.set_page_config("Simulador Médico IA", "🩺", layout="wide")
+# ======= CONFIGURAÇÕES =======
+st.set_page_config(page_title="Simulador Médico IA", page_icon="🩺", layout="wide")
 
-st.markdown(
-    """
-    <style>
-    textarea{
-        border:2px solid #003366!important;border-radius:8px!important;
-        box-shadow:0 0 5px rgba(0,51,102,.4);padding:.5rem}
-    </style>
-    """,
-    unsafe_allow_html=True,
-)
+# Estilo para textarea
+st.markdown("""<style>
+textarea{border:2px solid #003366!important;border-radius:8px!important;
+box-shadow:0 0 5px rgba(0,51,102,.4);padding:.5rem}
+</style>""", unsafe_allow_html=True)
 
-# ─────────── CREDENCIAIS ───────────
+# ======= CREDENCIAIS =======
 openai.api_key       = st.secrets["openai"]["api_key"]
 ASSISTANT_ID         = st.secrets["assistants"]["default"]
 ASSISTANT_PEDIATRIA  = st.secrets["assistants"]["pediatria"]
 ASSISTANT_EMERGENCIA = st.secrets["assistants"]["emergencias"]
 
-scope  = ["https://spreadsheets.google.com/feeds",
-          "https://www.googleapis.com/auth/drive"]
+scope  = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
 creds  = ServiceAccountCredentials.from_json_keyfile_dict(
-            dict(st.secrets["google_credentials"]), scope)
+    dict(st.secrets["google_credentials"]), scope
+)
 gs     = gspread.authorize(creds)
 
-# ─────────── FUNÇÕES ───────────
-_norm = lambda s: "".join(c for c in unicodedata.normalize("NFD", str(s))
-                          if unicodedata.category(c) != "Mn").lower().strip()
+# ======= UTILITÁRIOS =======
+def normalizar_texto(texto: str) -> str:
+    if texto is None:
+        return ""
+    return "".join(
+        c for c in unicodedata.normalize("NFD", str(texto))
+        if unicodedata.category(c) != "Mn"
+    ).lower().strip()
 
-def validar(u, p):
-    for l in gs.open("LoginSimulador").sheet1.get_all_records():
-        if _norm(l.get("usuario","")) == _norm(u) and str(l.get("senha","")).strip() == p:
+def validar_credenciais(usuario_input: str, senha_input: str) -> bool:
+    usuario_input_norm = normalizar_texto(usuario_input)
+    senha_input_norm   = str(senha_input).strip()
+    sheet = gs.open("LoginSimulador").sheet1
+    for linha in sheet.get_all_records():
+        usuario_plan = normalizar_texto(linha.get("usuario", ""))
+        senha_plan   = str(linha.get("senha", "")).strip()
+        if usuario_plan == usuario_input_norm and senha_plan == senha_input_norm:
             return True
     return False
 
-def casos(u):
+def contar_casos_usuario(usuario: str) -> int:
     try:
-        return sum(1 for l in gs.open("LogsSimulador").sheet1.get_all_records()
-                   if _norm(l.get("usuario","")) == _norm(u))
-    except: return 0
+        sheet = gs.open("LogsSimulador").sheet1
+        return sum(
+            1
+            for l in sheet.get_all_records()
+            if normalizar_texto(l.get("usuario", "")) == normalizar_texto(usuario)
+        )
+    except:
+        return 0
 
-def media(u):
+def calcular_media_usuario(usuario: str) -> float:
     try:
-        notas=[float(l["nota"]) for l in gs.open("notasSimulador").sheet1.get_all_records()
-               if _norm(l.get("usuario","")) == _norm(u)]
-        return round(sum(notas)/len(notas),2) if notas else 0
-    except: return 0
+        sheet = gs.open("notasSimulador").sheet1
+        notas = [
+            float(l["nota"])
+            for l in sheet.get_all_records()
+            if normalizar_texto(l.get("usuario", "")) == normalizar_texto(usuario)
+        ]
+        return round(sum(notas) / len(notas), 2) if notas else 0.0
+    except:
+        return 0.0
 
-def registrar(u,txt):
-    gs.open("LogsSimulador").sheet1.append_row(
-        [u, datetime.now().isoformat(" ","seconds"), txt, "IA"])
+def registrar_caso(usuario: str, texto: str):
+    sheet = gs.open("LogsSimulador").sheet1
+    sheet.append_row([usuario, datetime.now().strftime("%Y-%m-%d %H:%M:%S"), texto, "IA"])
 
-def salvar_nota(u,n):
-    gs.open("notasSimulador").sheet1.append_row(
-        [u, n, datetime.now().isoformat(" ","seconds")])
+def salvar_nota_usuario(usuario: str, nota: float):
+    sheet = gs.open("notasSimulador").sheet1
+    sheet.append_row([usuario, nota, datetime.now().strftime("%Y-%m-%d %H:%M:%S")], value_input_option="USER_ENTERED")
 
-def extrair_nota(txt):
-    m=re.search(r"Nota:\s*([\d.,]+)",txt)
-    return float(m.group(1).replace(",",".")) if m else None
+def extrair_nota(texto: str) -> float | None:
+    match = re.search(r"Nota:\s*(\d+(?:[\.,]\d+)?)", texto)
+    if match:
+        return float(match.group(1).replace(",", "."))
+    return None
 
-# ─────────── SESSION DEFAULTS ───────────
-defaults = {
-    "logado":False,"thread_id":None,"historico":"","consulta_finalizada":False,
-    "anotacoes":"","confirm_nova":False
-}
-for k,v in defaults.items(): st.session_state.setdefault(k,v)
+# ======= SESSION STATE =======
+if "logado" not in st.session_state:
+    st.session_state.logado = False
 
-# ─────────── LOGIN ───────────
+# ======= LOGIN =======
 if not st.session_state.logado:
-    st.title("🔐 Simulador Médico – Login")
-    with st.form("login"):
-        u = st.text_input("Usuário")
-        p = st.text_input("Senha", type="password")
-        if st.form_submit_button("Entrar"):
-            if validar(u,p):
-                st.session_state.usuario=u
-                st.session_state.logado=True
-                st.rerun()
+    st.title("🔐 Simulador Médico - Login")
+    with st.form("login_form"):
+        usuario = st.text_input("Usuário")
+        senha = st.text_input("Senha", type="password")
+        submitted = st.form_submit_button("Entrar")
+        if submitted:
+            if validar_credenciais(usuario, senha):
+                st.session_state.usuario = usuario
+                st.session_state.logado = True
+                st.success("Login realizado com sucesso!")
+                st.experimental_rerun()
             else:
-                st.error("Credenciais inválidas")
+                st.error("Usuário ou senha inválidos.")
     st.stop()
 
-# ─────────── CABEÇALHO ───────────
-st.title("🩺 Simulador Médico Interativo")
-st.markdown(f"👤 **{st.session_state.usuario}**")
+# ======= ÁREA LOGADA =======
+st.title("🩺 Simulador Médico Interativo")
+st.markdown(f"👤 **{st.session_state.usuario}**")
 
-c1,c2 = st.columns(2)
-c1.metric("Casos finalizados", casos(st.session_state.usuario))
-c2.metric("Média global",      media(st.session_state.usuario))
+col1, col2 = st.columns(2)
+col1.metric("📋 Casos finalizados", contar_casos_usuario(st.session_state.usuario))
+col2.metric("📊 Média global", calcular_media_usuario(st.session_state.usuario))
 
 # ─────────── ESPECIALIDADE ───────────
 esp = st.radio("Especialidade", ["PSF","Pediatria","Emergências"], horizontal=True)
