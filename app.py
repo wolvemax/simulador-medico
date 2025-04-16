@@ -31,8 +31,8 @@ st.markdown(
 
 # ====== CREDENCIAIS ======
 openai.api_key = st.secrets["openai"]["api_key"]
-ASSISTANT_ID = st.secrets["assistants"]["default"]
-ASSISTANT_PEDIATRIA_ID = st.secrets["assistants"]["pediatria"]
+ASSISTANT_ID             = st.secrets["assistants"]["default"]
+ASSISTANT_PEDIATRIA_ID   = st.secrets["assistants"]["pediatria"]
 ASSISTANT_EMERGENCIAS_ID = st.secrets["assistants"]["emergencias"]
 
 scope = [
@@ -46,23 +46,32 @@ creds = ServiceAccountCredentials.from_json_keyfile_dict(
 gs = gspread.authorize(creds)
 
 # ====== FUNÇÕES AUXILIARES ======
-def normalize_text(txt):
+def _normalize(txt):
     if txt is None:
         return ""
     return "".join(
-        c for c in unicodedata.normalize("NFD", str(txt))
+        c
+        for c in unicodedata.normalize("NFD", str(txt))
         if unicodedata.category(c) != "Mn"
     ).lower().strip()
 
 def validate_credentials(user_input, pass_input):
+    """
+    Busca dinamicamente as colunas 'usuario' e 'senha' na planilha,
+    normaliza os cabeçalhos e compara com o input do usuário.
+    """
     sheet = gs.open("LoginSimulador").sheet1
     for row in sheet.get_all_records():
-        if (
-            normalize_text(row.get("usuario"))
-            == normalize_text(user_input)
-            and str(row.get("senha", "")).strip()
-            == pass_input
-        ):
+        user_row = ""
+        pass_row = ""
+        # percorre cada coluna da linha e identifica pelos cabeçalhos
+        for header, value in row.items():
+            hdr = _normalize(header)
+            if hdr == "usuario":
+                user_row = _normalize(value)
+            elif hdr == "senha":
+                pass_row = str(value).strip()
+        if user_row == _normalize(user_input) and pass_row == pass_input.strip():
             return True
     return False
 
@@ -72,7 +81,7 @@ def count_cases(user):
         return sum(
             1
             for r in sheet.get_all_records()
-            if normalize_text(r.get("usuario")) == normalize_text(user)
+            if _normalize(r.get("usuario")) == _normalize(user)
         )
     except:
         return 0
@@ -83,28 +92,30 @@ def calculate_average(user):
         notes = [
             float(r["nota"])
             for r in sheet.get_all_records()
-            if normalize_text(r.get("usuario")) == normalize_text(user)
+            if _normalize(r.get("usuario")) == _normalize(user)
         ]
         return round(sum(notes) / len(notes), 2) if notes else 0.0
     except:
         return 0.0
 
 def register_case(user, text):
-    gs.open("LogsSimulador").sheet1.append_row(
-        [user, datetime.now().strftime("%Y-%m-%d %H:%M:%S"), text, "IA"]
-    )
+    gs.open("LogsSimulador").sheet1.append_row([
+        user,
+        datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        text,
+        "IA"
+    ])
 
 def save_user_score(user, score):
-    gs.open("notasSimulador").sheet1.append_row(
-        [user, score, datetime.now().strftime("%Y-%m-%d %H:%M:%S")],
-        value_input_option="USER_ENTERED"
-    )
+    gs.open("notasSimulador").sheet1.append_row([
+        user,
+        score,
+        datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    ], value_input_option="USER_ENTERED")
 
 def extract_score(text):
     m = re.search(r"Nota:\s*(\d+(?:[.,]\d+)?)", text)
-    if m:
-        return float(m.group(1).replace(",", "."))
-    return None
+    return float(m.group(1).replace(",", ".")) if m else None
 
 # ====== SESSION STATE ======
 if "logged_in" not in st.session_state:
@@ -130,18 +141,19 @@ if not st.session_state.logged_in:
             if validate_credentials(user_input, pass_input):
                 st.session_state.user = user_input
                 st.session_state.logged_in = True
+                st.success("Login realizado com sucesso!")
                 st.experimental_rerun()
             else:
                 st.error("Usuário ou senha inválidos.")
     st.stop()
 
-# ====== ÁREA PRINCIPAL ======
+# ====== APÓS LOGIN ======
 st.title("🩺 Simulador Médico Interativo")
 st.markdown(f"👤 **{st.session_state.user}**")
 
 col1, col2 = st.columns(2)
-col1.metric("Casos finalizados", count_cases(st.session_state.user))
-col2.metric("Média global", calculate_average(st.session_state.user))
+col1.metric("Casos finalizados",    count_cases(st.session_state.user))
+col2.metric("Média global",         calculate_average(st.session_state.user))
 
 # ====== ESPECIALIDADE ======
 speciality = st.radio(
@@ -150,10 +162,8 @@ speciality = st.radio(
     horizontal=True
 )
 assistant_used = (
-    ASSISTANT_ID
-    if speciality == "PSF"
-    else ASSISTANT_PEDIATRIA_ID
-    if speciality == "Pediatria"
+    ASSISTANT_ID if speciality == "PSF"
+    else ASSISTANT_PEDIATRIA_ID if speciality == "Pediatria"
     else ASSISTANT_EMERGENCIAS_ID
 )
 
@@ -167,10 +177,11 @@ if st.button("➕ Nova Simulação"):
         if not confirm:
             st.warning("Aguardando confirmação para iniciar nova simulação.")
             st.stop()
-    # inicia thread
+
+    # inicia a thread e gera paciente
     st.session_state.thread_id = openai.beta.threads.create().id
-    st.session_state.finished = False
-    # spinner gerando paciente
+    st.session_state.finished    = False
+
     placeholder = st.empty()
     placeholder.markdown(
         "<h3 style='text-align:center'>🧠 Gerando paciente... aguarde</h3>",
@@ -186,7 +197,7 @@ if st.button("➕ Nova Simulação"):
     ).status != "completed":
         time.sleep(0.5)
     placeholder.empty()
-    # captura resposta inicial
+
     msgs = openai.beta.threads.messages.list(
         thread_id=st.session_state.thread_id
     ).data
@@ -228,6 +239,7 @@ if st.session_state.thread_id and not st.session_state.finished:
                 ).status != "completed":
                     time.sleep(0.5)
                 ph2.empty()
+
                 msgs2 = openai.beta.threads.messages.list(
                     thread_id=st.session_state.thread_id
                 ).data
@@ -273,6 +285,7 @@ if st.session_state.thread_id and not st.session_state.finished:
         ).status != "completed":
             time.sleep(0.5)
         ph3.empty()
+
         msgs3 = openai.beta.threads.messages.list(
             thread_id=st.session_state.thread_id
         ).data
@@ -282,6 +295,7 @@ if st.session_state.thread_id and not st.session_state.finished:
         )
         st.subheader("📄 Resultado Final")
         st.markdown(final_resp)
+
         st.session_state.finished = True
         register_case(st.session_state.user, final_resp)
         score = extract_score(final_resp)
