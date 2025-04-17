@@ -166,44 +166,65 @@ if st.button("➕ Nova Simulação"):
             break
     st.rerun()
 
-# ======= ANAMNESE LATERAL FIXA =======
-st.markdown("""
-    <style>
-    .anamnese-box {
-        position: fixed;
-        top: 120px;
-        right: 25px;
-        width: 320px;
-        height: 560px;
-        background-color: #f1f1f1;
-        padding: 12px;
-        border-radius: 10px;
-        box-shadow: 0 0 8px rgba(0,0,0,0.15);
-        z-index: 1000;
-    }
-    </style>
-""", unsafe_allow_html=True)
+# ======= CONSULTA COM ANAMNESE LATERAL =======
+col_chat, col_anamnese = st.columns([2, 1])
 
-st.markdown("""
-    <style>
-    .anamnese-box {
-        position: fixed;
-        top: 120px;
-        right: 15px;
-        width: 300px;
-        height: 480px;
-        background-color: white;
-        padding: 10px;
-        border-radius: 12px;
-        box-shadow: 0 0 8px rgba(0,0,0,0.1);
-        z-index: 999;
-        overflow-y: auto;
-    }
-    </style>
-""", unsafe_allow_html=True)
+with col_chat:
+    if st.session_state.historico:
+        st.markdown("### 👤 Identificação do Paciente")
+        st.info(st.session_state.historico)
 
-st.markdown('<div class="anamnese-box">', unsafe_allow_html=True)
-st.text_area("📝 Anamnese do Caso", value="""MUC:
+    if st.session_state.thread_id and not st.session_state.consulta_finalizada:
+        renderizar_historico()
+        pergunta = st.chat_input("Digite sua pergunta ou conduta:")
+        if pergunta:
+            openai.beta.threads.messages.create(thread_id=st.session_state.thread_id, role="user", content=pergunta)
+            run = openai.beta.threads.runs.create(thread_id=st.session_state.thread_id, assistant_id=assistant_id_usado)
+            with st.spinner("Pensando..."):
+                while True:
+                    status = openai.beta.threads.runs.retrieve(thread_id=st.session_state.thread_id, run_id=run.id)
+                    if status.status == "completed":
+                        break
+                    time.sleep(1)
+            st.rerun()
+
+    if st.session_state.thread_id and not st.session_state.consulta_finalizada:
+        if st.button("✅ Finalizar Consulta"):
+            mensagem_final = (
+                "Finalizar consulta. A partir do histórico da consulta, gere:\n"
+                "1. O prontuário completo do paciente (título: ### Prontuário Completo do Paciente).\n"
+                "2. Um feedback educacional completo para o médico.\n"
+                "3. Gere uma nota objetiva de 0 a 10 com base na performance do médico. Escreva obrigatoriamente no formato exato: Nota: X/10."
+            )
+            openai.beta.threads.messages.create(thread_id=st.session_state.thread_id, role="user", content=mensagem_final)
+            run = openai.beta.threads.runs.create(thread_id=st.session_state.thread_id, assistant_id=assistant_id_usado)
+            with st.spinner("Gerando relatório da consulta..."):
+                while True:
+                    status = openai.beta.threads.runs.retrieve(thread_id=st.session_state.thread_id, run_id=run.id)
+                    if status.status == "completed":
+                        break
+                    time.sleep(1)
+            mensagens = openai.beta.threads.messages.list(thread_id=st.session_state.thread_id).data
+            for msg in mensagens:
+                if msg.role == "assistant":
+                    resposta = msg.content[0].text.value
+                    with st.chat_message("assistant", avatar="🧑‍⚕️"):
+                        st.markdown("### 📄 Resultado Final")
+                        st.markdown(resposta)
+                    st.session_state.consulta_finalizada = True
+                    registrar_caso(st.session_state.usuario, resposta)
+                    nota = extrair_nota(resposta)
+                    if nota is not None:
+                        salvar_nota_usuario(st.session_state.usuario, nota)
+                        st.session_state.media_usuario = calcular_media_usuario(st.session_state.usuario)
+                        st.success("✅ Nota salva com sucesso!")
+                    else:
+                        st.warning("⚠️ Não foi possível extrair a nota.")
+                    break
+
+with col_anamnese:
+    st.markdown("### 📝 Anamnese do Caso")
+    st.text_area("", key="anamnese", height=500, value="""MUC:
 
 QP:
 
@@ -215,39 +236,4 @@ AF:
 
 HDV:
 
-HD:""", height=440, key="anamnese")
-st.markdown('</div>', unsafe_allow_html=True)
-
-if st.session_state.thread_id and not st.session_state.consulta_finalizada:
-    if st.button("✅ Finalizar Consulta"):
-        mensagem_final = (
-            "Finalizar consulta. A partir do histórico da consulta, gere:\n"
-            "1. O prontuário completo do paciente (título: ### Prontuário Completo do Paciente).\n"
-            "2. Um feedback educacional completo para o médico.\n"
-            "3. Gere uma nota objetiva de 0 a 10 com base na performance do médico. Escreva obrigatoriamente no formato exato: Nota: X/10."
-        )
-        openai.beta.threads.messages.create(thread_id=st.session_state.thread_id, role="user", content=mensagem_final)
-        run = openai.beta.threads.runs.create(thread_id=st.session_state.thread_id, assistant_id=assistant_id_usado)
-        with st.spinner("Gerando relatório da consulta..."):
-            while True:
-                status = openai.beta.threads.runs.retrieve(thread_id=st.session_state.thread_id, run_id=run.id)
-                if status.status == "completed":
-                    break
-                time.sleep(1)
-        mensagens = openai.beta.threads.messages.list(thread_id=st.session_state.thread_id).data
-        for msg in mensagens:
-            if msg.role == "assistant":
-                resposta = msg.content[0].text.value
-                with st.chat_message("assistant", avatar="🧑‍⚕️"):
-                    st.markdown("### 📄 Resultado Final")
-                    st.markdown(resposta)
-                st.session_state.consulta_finalizada = True
-                registrar_caso(st.session_state.usuario, resposta)
-                nota = extrair_nota(resposta)
-                if nota is not None:
-                    salvar_nota_usuario(st.session_state.usuario, nota)
-                    st.session_state.media_usuario = calcular_media_usuario(st.session_state.usuario)
-                    st.success("✅ Nota salva com sucesso!")
-                else:
-                    st.warning("⚠️ Não foi possível extrair a nota.")
-                break
+HD:""")
