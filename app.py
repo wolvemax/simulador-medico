@@ -104,6 +104,13 @@ if not st.session_state.logado:
         senha = st.text_input("Senha", type="password")
         submitted = st.form_submit_button("Entrar")
         if submitted:
+            try:
+                sheet = client_gspread.open("LoginSimulador").sheet1
+                dados = sheet.get_all_records()
+                st.write("🔍 Debug - Registros da planilha LoginSimulador:")
+                st.write(dados)
+            except Exception as e:
+                st.error(f"Erro ao acessar LoginSimulador: {e}")
             if validar_credenciais(usuario, senha):
                 st.session_state.usuario = usuario
                 st.session_state.logado = True
