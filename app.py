@@ -269,7 +269,7 @@ if st.session_state.thread_id and not st.session_state.consulta_finalizada:
             if msg.role == "assistant":
                 resposta = msg.content[0].text.value
 
-                with st.chat_message("assistant", avatar="🧍‍⚕️"):
+                with st.chat_message("assistant", avatar="🧑‍⚕️"):
                     st.markdown("### 📄 Resultado Final")
                     st.markdown(resposta)
 
