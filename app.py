@@ -88,14 +88,13 @@ def renderizar_historico():
     mensagens = openai.beta.threads.messages.list(thread_id=st.session_state.thread_id).data
     mensagens_ordenadas = sorted(mensagens, key=lambda x: x.created_at)
     for msg in mensagens_ordenadas:
-        if "Iniciar nova simulação clínica" in msg.content[0].text.value:
-            continue
-        hora = datetime.fromtimestamp(msg.created_at).strftime("%H:%M")
         if msg.role == "user":
+            continue
             with st.chat_message("user", avatar="👨‍⚕️"):
                 st.markdown(msg.content[0].text.value)
                 st.caption(f"⏰ {hora}")
         elif msg.role == "assistant":
             with st.chat_message("assistant", avatar="🧑‍⚕️"):
                 st.markdown(msg.content[0].text.value)
-                st.caption(f"⏰ {hora}")
+        hora = datetime.fromtimestamp(msg.created_at).strftime("%H:%M")
+    st.caption(f"⏰ {hora}")
