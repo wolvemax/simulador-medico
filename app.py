@@ -176,6 +176,15 @@ if st.button("➕ Nova Simulação"):
 if st.session_state.historico:
     st.markdown("### 👤 Paciente")
     st.info(st.session_state.historico)
+    # Buscar e exibir mensagens da thread atual
+    mensagens = openai.beta.threads.messages.list(thread_id=st.session_state.thread_id).data
+    mensagens_ordenadas = sorted(mensagens, key=lambda x: x.created_at)
+
+    for msg in mensagens_ordenadas:
+        if msg.role == "user":
+            st.markdown(f"**👨‍⚕️ Você:** {msg.content[0].text.value}")
+        elif msg.role == "assistant":
+            st.markdown(f"**🧑‍⚕️ Paciente:** {msg.content[0].text.value}")
 
 if st.session_state.thread_id and not st.session_state.consulta_finalizada:
     pergunta = st.text_area("Digite sua pergunta ou conduta:")
