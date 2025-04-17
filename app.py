@@ -189,8 +189,7 @@ if st.session_state.thread_id and not st.session_state.consulta_finalizada:
         )
         with st.spinner("Gerando relatório da consulta..."):
             while True:
-                status = openai.beta.threads.runs.retrieve(
-                    thread_id=st.session_state.thread_id, run_id=run.id)
+                status = openai.beta.threads.runs.retrieve(thread_id=st.session_state.thread_id, run_id=run.id)
                 if status.status == "completed":
                     break
                 time.sleep(1)
