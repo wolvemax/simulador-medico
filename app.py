@@ -92,7 +92,7 @@ def renderizar_historico():
                 st.markdown(msg.content[0].text.value)
                 st.caption(f"⏰ {hora}")
         elif msg.role == "assistant":
-            with st.chat_message("assistant", avatar="🧍‍⚕️"):
+            with st.chat_message("assistant", avatar="🧑‍⚕️"):
                 st.markdown(msg.content[0].text.value)
                 st.caption(f"⏰ {hora}")
 
