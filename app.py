@@ -216,6 +216,14 @@ if st.session_state.thread_id and not st.session_state.consulta_finalizada:
                 with st.chat_message("assistant", avatar="🧑‍⚕️"):
                     st.markdown("### 📄 Resultado Final")
                     st.markdown(resposta)
+                    st.info("""
+**Notas por etapa:**
+- Identificação e anamnese: _nota atribuída pela IA_
+- Hipóteses diagnósticas: _nota atribuída pela IA_
+- Conduta: _nota atribuída pela IA_
+- Raciocínio clínico: _nota atribuída pela IA_
+- Participação: _nota atribuída pela IA_
+""")
                 st.session_state.consulta_finalizada = True
                 registrar_caso(st.session_state.usuario, resposta)
                 nota = extrair_nota(resposta)
