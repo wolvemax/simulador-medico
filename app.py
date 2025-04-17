@@ -75,9 +75,9 @@ def salvar_nota_usuario(usuario, nota):
 def extrair_nota(texto):
     import re
     try:
-        match = re.search(r"nota\\s*[:\\-]?\\s*(\\d+(?:[.,]\\d+)?)(?:\\s*/?\\s*10)?", texto, re.IGNORECASE)
+        match = re.search(r"nota\s*[:\-]?\s*(\d+(?:[.,]\d+)?)(?:\s*/?\s*10)?", texto, re.IGNORECASE)
         if not match:
-            match = re.search(r"(\\d+(?:[.,]\\d+)?)\\s*/\\s*10", texto)
+            match = re.search(r"(\d+(?:[.,]\d+)?)\s*/\s*10", texto)
         if match:
             return float(match.group(1).replace(",", "."))
     except:
