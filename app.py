@@ -243,7 +243,7 @@ if st.session_state.thread_id and not st.session_state.consulta_finalizada:
 
 # ======= FINALIZAR CONSULTA =======
 if st.session_state.thread_id and not st.session_state.consulta_finalizada:
-st.markdown("""
+    st.markdown("""
         <style>
         .sticky-button {
             position: fixed;
