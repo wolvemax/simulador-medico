@@ -108,7 +108,7 @@ if not st.session_state.logado:
     st.stop()
 
 # ======= ESTILO FIXO =======
-st.markdown(\""" 
+st.markdown(""" 
 <style>
 .chat-container {
     max-height: 460px;
@@ -136,7 +136,7 @@ st.markdown(\"""
     margin-left: 1rem;
 }
 </style>
-\""", unsafe_allow_html=True)
+""", unsafe_allow_html=True)
 
 # ======= ÁREA LOGADA =======
 st.title("🩺 Simulador Médico Interativo com IA")
