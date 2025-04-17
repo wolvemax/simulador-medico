@@ -181,9 +181,48 @@ if st.button("➕ Nova Simulação"):
     st.rerun()
 
 # ======= ESTILO VISUAL =======
+st.markdown("""
+    <style>
+    .anamnese-box {
+        position: fixed;
+        top: 100px;
+        right: 20px;
+        width: 300px;
+        height: 600px;
+        background-color: #f1f1f1;
+        padding: 15px;
+        border-radius: 10px;
+        box-shadow: 0px 2px 6px rgba(0,0,0,0.2);
+        overflow-y: auto;
+        z-index: 998;
+    }
+    .anamnese-box textarea {
+        width: 100%;
+        height: 500px;
+        resize: none;
+        font-size: 14px;
+    }
+    </style>
+""", unsafe_allow_html=True)
 
+with st.container():
+    st.markdown('<div class="anamnese-box">', unsafe_allow_html=True)
+    anotacoes = st.text_area("📝 Anamnese do Caso", value="""MUC:
 
-# ======= CONTEÚDO DA SIMULAÇÃO =======
+QP:
+
+HDA:
+
+AP:
+
+AF:
+
+HDV:
+
+HD:
+""", height=500, key="anamnese")
+    st.markdown('</div>', unsafe_allow_html=True)
+
 # ======= CONTEÚDO DA SIMULAÇÃO =======
 with st.container():
     if st.session_state.historico:
