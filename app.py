@@ -183,16 +183,34 @@ if st.button("➕ Nova Simulação"):
 # ======= ESTILO VISUAL =======
 st.markdown("""
     <style>
-    .chatbox {
-        background-color: #fff;
+    /* Estiliza o campo do st.chat_input */
+    div[data-testid="stChatInput"] {
+        background-color: #f9f9f9;
         border: 1px solid #ccc;
         border-radius: 12px;
-        padding: 20px;
-        max-height: 400px;
-        overflow-y: auto;
-        box-shadow: 0px 4px 8px rgba(0,0,0,0.05);
-        margin-bottom: 10px;
-        transition: max-height 0.3s ease;
+        padding: 0.25rem 0.75rem;
+        margin-top: 8px;
+        box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+    }
+
+    div[data-testid="stChatInput"] textarea {
+        background-color: #fefefe !important;
+        border: none !important;
+        padding: 6px 10px !important;
+        font-size: 14px;
+        min-height: 32px !important;
+        line-height: 18px !important;
+        color: #333 !important;
+    }
+
+    div[data-testid="stChatInput"] button {
+        border-radius: 50%;
+        background-color: #007bff !important;
+        color: white !important;
+    }
+
+    div[data-testid="stChatInput"] button:hover {
+        background-color: #0056b3 !important;
     }
     </style>
 """, unsafe_allow_html=True)
