@@ -212,9 +212,4 @@ if st.session_state.thread_id and not st.session_state.consulta_finalizada:
                 if nota is not None:
                     salvar_nota_usuario(st.session_state.usuario, nota)
                 break
-"""
 
-# Salvar o arquivo no diretório acessível
-final_path = Path("/mnt/data/app_simulador_melhorias.py")
-final_path.write_text(app_code_updated)
-final_path
