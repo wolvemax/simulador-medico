@@ -88,6 +88,8 @@ def renderizar_historico():
     mensagens = openai.beta.threads.messages.list(thread_id=st.session_state.thread_id).data
     mensagens_ordenadas = sorted(mensagens, key=lambda x: x.created_at)
     for msg in mensagens_ordenadas:
+        if "Iniciar nova simulação clínica" in msg.content[0].text.value:
+            continue
         hora = datetime.fromtimestamp(msg.created_at).strftime("%H:%M")
         if msg.role == "user":
             with st.chat_message("user", avatar="👨‍⚕️"):
@@ -195,12 +197,10 @@ HD:"""
             break
     st.rerun()
 
-# QUADRO DE ANAMNESE FIXO
 with st.sidebar:
     st.markdown("### 📝 Anamnese do Caso")
     st.session_state.anamnese = st.text_area("", key="anamnese", height=500, value=st.session_state.anamnese)
 
-# ÁREA PRINCIPAL DO CHAT
 if st.session_state.historico:
     st.markdown("### 👤 Identificação do Paciente")
     st.info(st.session_state.historico)
