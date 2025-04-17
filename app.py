@@ -181,21 +181,9 @@ if st.button("➕ Nova Simulação"):
     st.rerun()
 
 # ======= ESTILO VISUAL =======
-st.markdown("""
-    <style>
-    .chatbox {
-        background-color: #fff;
-        border: 1px solid #ccc;
-        border-radius: 12px;
-        padding: 20px;
-        height: 500px;
-        overflow-y: auto;
-        box-shadow: 0px 4px 8px rgba(0,0,0,0.05);
-        margin-bottom: 10px;
-    }
-    </style>
-""", unsafe_allow_html=True)
 
+
+# ======= CONTEÚDO DA SIMULAÇÃO =======
 # ======= CONTEÚDO DA SIMULAÇÃO =======
 with st.container():
     if st.session_state.historico:
@@ -203,7 +191,6 @@ with st.container():
         st.info(st.session_state.historico)
 
     if st.session_state.thread_id and not st.session_state.consulta_finalizada:
-        st.markdown('<div class="chatbox">', unsafe_allow_html=True)
         renderizar_historico()
         st.markdown('</div>', unsafe_allow_html=True)
 
