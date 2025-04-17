@@ -183,37 +183,29 @@ if st.button("➕ Nova Simulação"):
 # ======= ESTILO VISUAL =======
 st.markdown("""
     <style>
-    /* Estiliza o campo do st.chat_input */
-    div[data-testid="stChatInput"] {
-        background-color: #f9f9f9;
+    .scrollable-chat {
+        max-height: 350px;
+        overflow-y: auto;
         border: 1px solid #ccc;
-        border-radius: 12px;
-        padding: 0.25rem 0.75rem;
-        margin-top: 8px;
-        box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+        border-radius: 10px;
+        padding: 15px;
+        background-color: #ffffff;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+        margin-top: 10px;
+        margin-bottom: 15px;
     }
 
-    div[data-testid="stChatInput"] textarea {
-        background-color: #fefefe !important;
-        border: none !important;
-        padding: 6px 10px !important;
-        font-size: 14px;
-        min-height: 32px !important;
-        line-height: 18px !important;
-        color: #333 !important;
+    /* Ocultar scroll bar no Chrome e Safari (opcional estético) */
+    .scrollable-chat::-webkit-scrollbar {
+        width: 8px;
     }
-
-    div[data-testid="stChatInput"] button {
-        border-radius: 50%;
-        background-color: #007bff !important;
-        color: white !important;
-    }
-
-    div[data-testid="stChatInput"] button:hover {
-        background-color: #0056b3 !important;
+    .scrollable-chat::-webkit-scrollbar-thumb {
+        background-color: #ccc;
+        border-radius: 10px;
     }
     </style>
 """, unsafe_allow_html=True)
+
 
 # ======= CONTEÚDO DA SIMULAÇÃO =======
 with st.container():
@@ -222,9 +214,10 @@ with st.container():
         st.info(st.session_state.historico)
 
     if st.session_state.thread_id and not st.session_state.consulta_finalizada:
-        st.markdown('<div class="chatbox">', unsafe_allow_html=True)
+        st.markdown('<div class="scrollable-chat">', unsafe_allow_html=True)
         renderizar_historico()
         st.markdown('</div>', unsafe_allow_html=True)
+
 
 # ======= INPUT DE PERGUNTA =======
 if st.session_state.thread_id and not st.session_state.consulta_finalizada:
