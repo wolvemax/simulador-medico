@@ -107,8 +107,6 @@ if not st.session_state.logado:
             try:
                 sheet = client_gspread.open("LoginSimulador").sheet1
                 dados = sheet.get_all_records()
-                st.write("🔍 Debug - Registros da planilha LoginSimulador:")
-                st.write(dados)
             except Exception as e:
                 st.error(f"Erro ao acessar LoginSimulador: {e}")
             if validar_credenciais(usuario, senha):
