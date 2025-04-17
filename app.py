@@ -186,22 +186,22 @@ def renderizar_historico():
             with st.chat_message("assistant", avatar="🧑‍⚕️"):
                 st.markdown(msg.content[0].text.value)
 
-# Mostrar histórico imediatamente
+# Mostrar histórico imediatamente ao carregar
 if st.session_state.thread_id and not st.session_state.consulta_finalizada:
     renderizar_historico()
 
-# Input estilo chat
+# Campo de entrada tipo chat (limpa automaticamente após envio)
 if st.session_state.thread_id and not st.session_state.consulta_finalizada:
     pergunta = st.chat_input("Digite sua pergunta ou conduta:")
     if pergunta:
-        # Envia pergunta
+        # Envia a pergunta
         openai.beta.threads.messages.create(
             thread_id=st.session_state.thread_id,
             role="user",
             content=pergunta
         )
 
-        # Processa com o assistente
+        # Inicia o processamento da IA
         run = openai.beta.threads.runs.create(
             thread_id=st.session_state.thread_id,
             assistant_id=assistant_id_usado
@@ -217,18 +217,8 @@ if st.session_state.thread_id and not st.session_state.consulta_finalizada:
                     break
                 time.sleep(1)
 
-        # Exibe histórico completo, incluindo resposta
+        # Exibe a conversa atualizada após a resposta
         renderizar_historico()
-
-            mensagens = openai.beta.threads.messages.list(thread_id=st.session_state.thread_id).data
-            for msg in mensagens:
-                if msg.role == "assistant":
-                    with st.chat_message("assistant", avatar="🧑‍⚕️"):
-                        st.markdown(msg.content[0].text.value)
-                    break
-                    
-        else:
-            st.warning("Digite uma pergunta antes de enviar.")
 
 if st.session_state.thread_id and not st.session_state.consulta_finalizada:
     if st.button("✅ Finalizar Consulta"):
