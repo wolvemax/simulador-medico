@@ -33,13 +33,17 @@ def normalizar(texto):
     return ''.join((c for c in unicodedata.normalize('NFD', str(texto)) if unicodedata.category(c) != 'Mn')).lower().strip()
 
 def validar_credenciais(usuario, senha):
-    sheet = client_gspread.open("LoginSimulador").sheet1
-    dados = sheet.get_all_records()
-    for linha in dados:
-        linha_normalizada = {normalizar_chave(k): v.strip() for k, v in linha.items()}
-        if linha_normalizada.get("usuario") == usuario and linha_normalizada.get("senha") == senha:
-            return True
-    return False
+    try:
+        sheet = client_gspread.open("LoginSimulador").sheet1
+        dados = sheet.get_all_records()
+        for linha in dados:
+            linha_normalizada = {normalizar_chave(k): v.strip() for k, v in linha.items()}
+            if linha_normalizada.get("usuario") == usuario and linha_normalizada.get("senha") == senha:
+                return True
+        return False
+    except Exception as e:
+        st.error(f"Erro ao acessar planilha de login: {e}")
+        return False
 
 def contar_casos_usuario(usuario):
     try:
