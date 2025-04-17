@@ -37,12 +37,12 @@ def validar_credenciais(usuario, senha):
         sheet = client_gspread.open("LoginSimulador").sheet1
         dados = sheet.get_all_records()
         for linha in dados:
-            linha_normalizada = {normalizar_chave(k): v.strip() for k, v in linha.items()}
+            linha_normalizada = {normalizar_chave(k): v.strip() for k, v in linha.items() if isinstance(v, str)}
             if linha_normalizada.get("usuario") == usuario and linha_normalizada.get("senha") == senha:
                 return True
         return False
     except Exception as e:
-        st.error(f"Erro ao acessar planilha de login: {e}")
+        st.error(f"Erro ao validar login: {e}")
         return False
 
 def contar_casos_usuario(usuario):
