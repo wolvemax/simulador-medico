@@ -214,6 +214,6 @@ if st.session_state.thread_id and not st.session_state.consulta_finalizada:
                 nota = extrair_nota(resposta)
                 if nota is not None:
                     salvar_nota_usuario(st.session_state.usuario, nota)
-    s               st.session_state.media_usuario = calcular_media_usuario(st.session_state.usuario)
+                    st.session_state.media_usuario = calcular_media_usuario(st.session_state.usuario)
                 break
 
