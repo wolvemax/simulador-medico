@@ -11,17 +11,7 @@ import base64
 # ======= CONFIGURAÇÕES =======
 st.set_page_config(page_title="Simulador Médico IA", page_icon="🩺", layout="wide")
 
-# 💅 CSS para destacar text_area
-st.markdown(\"\"\"
-<style>
-textarea {
-    border: 2px solid #003366 !important;
-    border-radius: 8px !important;
-    box-shadow: 0px 0px 5px rgba(0, 51, 102, 0.4);
-    padding: 0.5rem;
-}
-</style>
-\"\"\", unsafe_allow_html=True)
+
 
 openai.api_key = st.secrets["openai"]["api_key"]
 ASSISTANT_ID = st.secrets["assistants"]["default"]
