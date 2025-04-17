@@ -183,16 +183,16 @@ if st.button("➕ Nova Simulação"):
 # ======= ESTILO VISUAL =======
 st.markdown("""
     <style>
-    .chat-scroll-area {
-        max-height: 400px;
-        overflow-y: auto;
-        padding: 1rem;
-        border: 1px solid #ddd;
-        background-color: #fff;
+    .sticky-button {
+        position: fixed;
+        bottom: 70px;
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 999;
+        background-color: white;
+        padding: 8px 16px;
         border-radius: 12px;
-        box-shadow: 0 2px 5px rgba(0,0,0,0.03);
-        margin-top: 15px;
-        margin-bottom: 15px;
+        box-shadow: 0 1px 4px rgba(0,0,0,0.1);
     }
     </style>
 """, unsafe_allow_html=True)
@@ -243,7 +243,11 @@ if st.session_state.thread_id and not st.session_state.consulta_finalizada:
 
 # ======= FINALIZAR CONSULTA =======
 if st.session_state.thread_id and not st.session_state.consulta_finalizada:
+    with st.container():
+    st.markdown('<div class="sticky-button">', unsafe_allow_html=True)
     if st.button("✅ Finalizar Consulta"):
+    st.markdown('</div>', unsafe_allow_html=True)
+
         mensagem_final = (
             "Finalizar consulta. A partir do histórico da consulta, gere:\n"
             "1. O prontuário completo do paciente (título: ### Prontuário Completo do Paciente).\n"
