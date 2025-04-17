@@ -88,11 +88,11 @@ def renderizar_historico():
     for msg in mensagens_ordenadas:
         hora = datetime.fromtimestamp(msg.created_at).strftime("%H:%M")
         if msg.role == "user":
-            with st.chat_message("assistant", avatar=""):
+            with st.chat_message("assistant", avatar="🤖"):
                 st.markdown(msg.content[0].text.value)
                 st.caption(f"⏰ {hora}")
         elif msg.role == "assistant":
-            with st.chat_message("assistant", avatar=""):
+            with st.chat_message("assistant", avatar="🤖"):
                 st.markdown(msg.content[0].text.value)
                 st.caption(f"⏰ {hora}")
 
