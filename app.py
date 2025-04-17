@@ -5,7 +5,6 @@ from datetime import datetime
 import time
 import openai
 import gspread
-import base64
 
 # ======= CONFIGURAÇÕES =======
 st.set_page_config(page_title="Simulador Médico IA", page_icon="🩺", layout="wide")
@@ -73,9 +72,9 @@ def salvar_nota_usuario(usuario, nota):
 def extrair_nota(texto):
     import re
     try:
-        match = re.search(r"nota\s*[:\-]?\s*(\d+(?:[.,]\d+)?)(?:\s*/?\s*10)?", texto, re.IGNORECASE)
+        match = re.search(r"nota\\s*[:\\-]?\\s*(\\d+(?:[.,]\\d+)?)(?:\\s*/?\\s*10)?", texto, re.IGNORECASE)
         if not match:
-            match = re.search(r"(\d+(?:[.,]\d+)?)\s*/\s*10", texto)
+            match = re.search(r"(\\d+(?:[.,]\\d+)?)\\s*/\\s*10", texto)
         if match:
             return float(match.group(1).replace(",", "."))
     except:
@@ -87,26 +86,14 @@ def renderizar_historico():
     mensagens_ordenadas = sorted(mensagens, key=lambda x: x.created_at)
     for msg in mensagens_ordenadas:
         hora = datetime.fromtimestamp(msg.created_at).strftime("%H:%M")
-        if msg.role == "user":
-            with st.chat_message("assistant", avatar="🤖"):
-                st.markdown(msg.content[0].text.value)
-                st.caption(f"⏰ {hora}")
-        elif msg.role == "assistant":
-            with st.chat_message("assistant", avatar="🤖"):
-                st.markdown(msg.content[0].text.value)
-                st.caption(f"⏰ {hora}")
+        with st.chat_message(msg.role, avatar="🧑‍⚕️" if msg.role == "assistant" else "👨‍⚕️"):
+            st.markdown(msg.content[0].text.value)
+            st.caption(f"⏰ {hora}")
 
 # ======= ESTADO INICIAL =======
-if "logado" not in st.session_state:
-    st.session_state.logado = False
-if "thread_id" not in st.session_state:
-    st.session_state.thread_id = None
-if "historico" not in st.session_state:
-    st.session_state.historico = ""
-if "consulta_finalizada" not in st.session_state:
-    st.session_state.consulta_finalizada = False
-if "prompt_inicial" not in st.session_state:
-    st.session_state.prompt_inicial = ""
+for key in ["logado", "thread_id", "historico", "consulta_finalizada", "prompt_inicial"]:
+    if key not in st.session_state:
+        st.session_state[key] = False if key == "logado" else None if key == "thread_id" else ""
 
 # ======= LOGIN =======
 if not st.session_state.logado:
@@ -114,15 +101,42 @@ if not st.session_state.logado:
     with st.form("login_form"):
         usuario = st.text_input("Usuário")
         senha = st.text_input("Senha", type="password")
-        submitted = st.form_submit_button("Entrar")
-        if submitted:
-            if validar_credenciais(usuario, senha):
-                st.session_state.usuario = usuario
-                st.session_state.logado = True
-                st.rerun()
-            else:
-                st.error("Usuário ou senha inválidos.")
+        if st.form_submit_button("Entrar") and validar_credenciais(usuario, senha):
+            st.session_state.usuario = usuario
+            st.session_state.logado = True
+            st.rerun()
     st.stop()
+
+# ======= ESTILO FIXO =======
+st.markdown(\""" 
+<style>
+.chat-container {
+    max-height: 460px;
+    overflow-y: auto;
+    padding: 16px;
+    margin-top: 12px;
+    background-color: #1e1e1e;
+    border: 1px solid #444;
+    border-radius: 12px;
+}
+.fixed-footer {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background-color: #0e1117;
+    padding: 1rem 2rem;
+    z-index: 9999;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 -2px 6px rgba(0,0,0,0.3);
+}
+.fixed-footer .stButton {
+    margin-left: 1rem;
+}
+</style>
+\""", unsafe_allow_html=True)
 
 # ======= ÁREA LOGADA =======
 st.title("🩺 Simulador Médico Interativo com IA")
@@ -135,171 +149,76 @@ if "media_usuario" not in st.session_state:
 col2.metric("📊 Média global", st.session_state.media_usuario)
 
 especialidade = st.radio("Especialidade:", ["PSF", "Pediatria", "Emergências"])
-
-if especialidade == "Pediatria":
-    assistant_id_usado = ASSISTANT_PEDIATRIA_ID
-elif especialidade == "Emergências":
-    assistant_id_usado = ASSISTANT_EMERGENCIAS_ID
-else:
-    assistant_id_usado = ASSISTANT_ID
+assistant_id_usado = {
+    "PSF": ASSISTANT_ID,
+    "Pediatria": ASSISTANT_PEDIATRIA_ID,
+    "Emergências": ASSISTANT_EMERGENCIAS_ID
+}[especialidade]
 
 if st.button("➕ Nova Simulação"):
-    st.session_state.historico = ""
-    st.session_state.thread_id = None
-    st.session_state.consulta_finalizada = False
-
-    st.session_state.thread_id = openai.beta.threads.create().id
-
-    if especialidade == "Emergências":
-        st.session_state.prompt_inicial = ""
-    elif especialidade == "Pediatria":
-        st.session_state.prompt_inicial = "Iniciar nova simulação clínica pediátrica com identificação e queixa principal."
-    else:
-        st.session_state.prompt_inicial = "Iniciar nova simulação clínica com paciente simulado. Apenas início da consulta com identificação e queixa principal."
-
+    st.session_state.update({
+        "historico": "",
+        "thread_id": openai.beta.threads.create().id,
+        "consulta_finalizada": False,
+        "prompt_inicial": {
+            "Pediatria": "Iniciar nova simulação clínica pediátrica com identificação e queixa principal.",
+            "Emergências": "",
+            "PSF": "Iniciar nova simulação clínica com paciente simulado. Apenas início da consulta com identificação e queixa principal."
+        }[especialidade]
+    })
     if st.session_state.prompt_inicial:
-        openai.beta.threads.messages.create(
-            thread_id=st.session_state.thread_id,
-            role="user",
-            content=st.session_state.prompt_inicial
-        )
-
+        openai.beta.threads.messages.create(thread_id=st.session_state.thread_id, role="user", content=st.session_state.prompt_inicial)
     run = openai.beta.threads.runs.create(thread_id=st.session_state.thread_id, assistant_id=assistant_id_usado)
     with st.spinner("Gerando paciente..."):
-        while True:
-            status = openai.beta.threads.runs.retrieve(thread_id=st.session_state.thread_id, run_id=run.id)
-            if status.status == "completed":
-                break
+        while openai.beta.threads.runs.retrieve(thread_id=st.session_state.thread_id, run_id=run.id).status != "completed":
             time.sleep(1)
-
     mensagens = openai.beta.threads.messages.list(thread_id=st.session_state.thread_id).data
     for msg in mensagens:
         if msg.role == "assistant":
             st.session_state.historico = msg.content[0].text.value
             break
-
     st.rerun()
 
-# ======= ESTILO VISUAL =======
-st.markdown("""
-    <style>
-    .sticky-button {
-        position: fixed;
-        bottom: 70px;
-        left: 50%;
-        transform: translateX(-50%);
-        z-index: 999;
-        background-color: white;
-        padding: 8px 16px;
-        border-radius: 12px;
-        box-shadow: 0 1px 4px rgba(0,0,0,0.1);
-    }
-    </style>
-""", unsafe_allow_html=True)
+# ======= MOSTRA IDENTIFICAÇÃO E HISTÓRICO =======
+if st.session_state.historico:
+    st.markdown("### 👤 Identificação do Paciente")
+    st.info(st.session_state.historico)
 
-st.markdown('<div class="chat-scroll-area">', unsafe_allow_html=True)
-renderizar_historico()
-st.markdown('</div>', unsafe_allow_html=True)
-
-
-# ======= CONTEÚDO DA SIMULAÇÃO =======
-with st.container():
-    if st.session_state.historico:
-        st.markdown("### 👤 Identificação do Paciente")
-        st.info(st.session_state.historico)
-
-    if st.session_state.thread_id and not st.session_state.consulta_finalizada:
-        st.markdown('<div class="scrollable-chat">', unsafe_allow_html=True)
-        renderizar_historico()
-        st.markdown('</div>', unsafe_allow_html=True)
-
-
-# ======= INPUT DE PERGUNTA =======
 if st.session_state.thread_id and not st.session_state.consulta_finalizada:
+    st.markdown('<div class="chat-container">', unsafe_allow_html=True)
+    renderizar_historico()
+    st.markdown('</div>', unsafe_allow_html=True)
+
+# ======= INPUT + BOTÃO FINALIZAR FIXOS =======
+if st.session_state.thread_id and not st.session_state.consulta_finalizada:
+    st.markdown('<div class="fixed-footer">', unsafe_allow_html=True)
+
     pergunta = st.chat_input("Digite sua pergunta ou conduta:")
     if pergunta:
-        openai.beta.threads.messages.create(
-            thread_id=st.session_state.thread_id,
-            role="user",
-            content=pergunta
-        )
-
-        run = openai.beta.threads.runs.create(
-            thread_id=st.session_state.thread_id,
-            assistant_id=assistant_id_usado
-        )
-
+        openai.beta.threads.messages.create(thread_id=st.session_state.thread_id, role="user", content=pergunta)
+        run = openai.beta.threads.runs.create(thread_id=st.session_state.thread_id, assistant_id=assistant_id_usado)
         with st.spinner("Pensando..."):
-            while True:
-                status = openai.beta.threads.runs.retrieve(
-                    thread_id=st.session_state.thread_id,
-                    run_id=run.id
-                )
-                if status.status == "completed":
-                    break
+            while openai.beta.threads.runs.retrieve(thread_id=st.session_state.thread_id, run_id=run.id).status != "completed":
                 time.sleep(1)
-
         st.rerun()
 
-# ======= FINALIZAR CONSULTA =======
-if st.session_state.thread_id and not st.session_state.consulta_finalizada:
-    st.markdown("""
-        <style>
-        .sticky-button {
-            position: fixed;
-            bottom: 70px;
-            left: 50%;
-            transform: translateX(-50%);
-            z-index: 999;
-            background-color: white;
-            padding: 8px 16px;
-            border-radius: 12px;
-            box-shadow: 0 1px 4px rgba(0,0,0,0.1);
-        }
-        </style>
-    """, unsafe_allow_html=True)
-
-    # Botão visível fora do scroll
-    st.markdown('<div class="sticky-button">', unsafe_allow_html=True)
     if st.button("✅ Finalizar Consulta"):
-        st.markdown('</div>', unsafe_allow_html=True)
-
         mensagem_final = (
-            "Finalizar consulta. A partir do histórico da consulta, gere:\n"
-            "1. O prontuário completo do paciente (título: ### Prontuário Completo do Paciente).\n"
-            "2. Um feedback educacional completo para o médico.\n"
-            "3. Gere uma nota objetiva de 0 a 10 com base na performance do médico. Escreva obrigatoriamente no formato exato: Nota: X/10.\n"
+            "Finalizar consulta. A partir do histórico da consulta, gere:\\n"
+            "1. O prontuário completo do paciente (título: ### Prontuário Completo do Paciente).\\n"
+            "2. Um feedback educacional completo para o médico.\\n"
+            "3. Gere uma nota objetiva de 0 a 10 com base na performance do médico. Escreva obrigatoriamente no formato exato: Nota: X/10.\\n"
         )
-
-        openai.beta.threads.messages.create(
-            thread_id=st.session_state.thread_id,
-            role="user",
-            content=mensagem_final
-        )
-
-        run = openai.beta.threads.runs.create(
-            thread_id=st.session_state.thread_id,
-            assistant_id=assistant_id_usado
-        )
-
+        openai.beta.threads.messages.create(thread_id=st.session_state.thread_id, role="user", content=mensagem_final)
+        run = openai.beta.threads.runs.create(thread_id=st.session_state.thread_id, assistant_id=assistant_id_usado)
         with st.spinner("Gerando relatório da consulta..."):
-            while True:
-                status = openai.beta.threads.runs.retrieve(
-                    thread_id=st.session_state.thread_id,
-                    run_id=run.id
-                )
-                if status.status == "completed":
-                    break
+            while openai.beta.threads.runs.retrieve(thread_id=st.session_state.thread_id, run_id=run.id).status != "completed":
                 time.sleep(1)
-
         mensagens = openai.beta.threads.messages.list(thread_id=st.session_state.thread_id).data
         for msg in mensagens:
             if msg.role == "assistant":
                 resposta = msg.content[0].text.value
-
-                st.session_state.consulta_finalizada = True
                 registrar_caso(st.session_state.usuario, resposta)
-
                 nota = extrair_nota(resposta)
                 if nota is not None:
                     salvar_nota_usuario(st.session_state.usuario, nota)
@@ -307,6 +226,8 @@ if st.session_state.thread_id and not st.session_state.consulta_finalizada:
                     st.success("✅ Nota salva com sucesso!")
                 else:
                     st.warning("⚠️ Não foi possível extrair a nota.")
+                st.session_state.consulta_finalizada = True
                 break
-    else:
-        st.markdown('</div>', unsafe_allow_html=True)  # fecha <div> mesmo se botão não clicado
+
+    st.markdown('</div>', unsafe_allow_html=True)
+
