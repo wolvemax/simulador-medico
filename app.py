@@ -63,7 +63,9 @@ def calcular_media_usuario(usuario):
 def registrar_caso(usuario, texto):
     sheet = client_gspread.open("LogsSimulador").worksheets()[0]
     datahora = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    sheet.append_row([usuario, datahora, texto, "IA"])
+    anamnese = st.session_state.get("anamnese", "")
+    texto_com_anamnese = f"{texto}\n\n---\n📝 ANAMNESE REGISTRADA PELO MÉDICO:\n{anamnese}"
+    sheet.append_row([usuario, datahora, texto_com_anamnese, "IA"])
 
 def salvar_nota_usuario(usuario, nota):
     sheet = client_gspread.open("notasSimulador").sheet1
@@ -107,6 +109,20 @@ if "consulta_finalizada" not in st.session_state:
     st.session_state.consulta_finalizada = False
 if "prompt_inicial" not in st.session_state:
     st.session_state.prompt_inicial = ""
+if "anamnese" not in st.session_state:
+    st.session_state.anamnese = """MUC:
+
+QP:
+
+HDA:
+
+AP:
+
+AF:
+
+HDV:
+
+HD:"""
 
 if not st.session_state.logado:
     st.title("🔐 Simulador Médico - Login")
@@ -144,6 +160,19 @@ if st.button("➕ Nova Simulação"):
     st.session_state.historico = ""
     st.session_state.thread_id = openai.beta.threads.create().id
     st.session_state.consulta_finalizada = False
+    st.session_state.anamnese = """MUC:
+
+QP:
+
+HDA:
+
+AP:
+
+AF:
+
+HDV:
+
+HD:"""
     if especialidade == "Emergências":
         st.session_state.prompt_inicial = ""
     elif especialidade == "Pediatria":
@@ -166,7 +195,6 @@ if st.button("➕ Nova Simulação"):
             break
     st.rerun()
 
-# ======= CONSULTA COM ANAMNESE LATERAL =======
 col_chat, col_anamnese = st.columns([2, 1])
 
 with col_chat:
@@ -224,16 +252,4 @@ with col_chat:
 
 with col_anamnese:
     st.markdown("### 📝 Anamnese do Caso")
-    st.text_area("", key="anamnese", height=500, value="""MUC:
-
-QP:
-
-HDA:
-
-AP:
-
-AF:
-
-HDV:
-
-HD:""")
+    st.session_state.anamnese = st.text_area("", key="anamnese", height=500, value=st.session_state.anamnese)
