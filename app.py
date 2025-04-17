@@ -184,6 +184,24 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
+st.markdown("""
+    <style>
+    .anamnese-box {
+        position: fixed;
+        top: 120px;
+        right: 15px;
+        width: 300px;
+        height: 480px;
+        background-color: white;
+        padding: 10px;
+        border-radius: 12px;
+        box-shadow: 0 0 8px rgba(0,0,0,0.1);
+        z-index: 999;
+        overflow-y: auto;
+    }
+    </style>
+""", unsafe_allow_html=True)
+
 st.markdown('<div class="anamnese-box">', unsafe_allow_html=True)
 st.text_area("📝 Anamnese do Caso", value="""MUC:
 
@@ -197,27 +215,8 @@ AF:
 
 HDV:
 
-HD:""", height=500, key="anamnese")
+HD:""", height=440, key="anamnese")
 st.markdown('</div>', unsafe_allow_html=True)
-
-# ======= CONSULTA =======
-if st.session_state.historico:
-    st.markdown("### 👤 Identificação do Paciente")
-    st.info(st.session_state.historico)
-
-if st.session_state.thread_id and not st.session_state.consulta_finalizada:
-    renderizar_historico()
-    pergunta = st.chat_input("Digite sua pergunta ou conduta:")
-    if pergunta:
-        openai.beta.threads.messages.create(thread_id=st.session_state.thread_id, role="user", content=pergunta)
-        run = openai.beta.threads.runs.create(thread_id=st.session_state.thread_id, assistant_id=assistant_id_usado)
-        with st.spinner("Pensando..."):
-            while True:
-                status = openai.beta.threads.runs.retrieve(thread_id=st.session_state.thread_id, run_id=run.id)
-                if status.status == "completed":
-                    break
-                time.sleep(1)
-        st.rerun()
 
 if st.session_state.thread_id and not st.session_state.consulta_finalizada:
     if st.button("✅ Finalizar Consulta"):
