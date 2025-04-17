@@ -183,28 +183,23 @@ if st.button("➕ Nova Simulação"):
 # ======= ESTILO VISUAL =======
 st.markdown("""
     <style>
-    .scrollable-chat {
-        max-height: 350px;
+    .chat-scroll-area {
+        max-height: 400px;
         overflow-y: auto;
-        border: 1px solid #ccc;
-        border-radius: 10px;
-        padding: 15px;
-        background-color: #ffffff;
-        box-shadow: 0 2px 6px rgba(0,0,0,0.05);
-        margin-top: 10px;
+        padding: 1rem;
+        border: 1px solid #ddd;
+        background-color: #fff;
+        border-radius: 12px;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.03);
+        margin-top: 15px;
         margin-bottom: 15px;
-    }
-
-    /* Ocultar scroll bar no Chrome e Safari (opcional estético) */
-    .scrollable-chat::-webkit-scrollbar {
-        width: 8px;
-    }
-    .scrollable-chat::-webkit-scrollbar-thumb {
-        background-color: #ccc;
-        border-radius: 10px;
     }
     </style>
 """, unsafe_allow_html=True)
+
+st.markdown('<div class="chat-scroll-area">', unsafe_allow_html=True)
+renderizar_historico()
+st.markdown('</div>', unsafe_allow_html=True)
 
 
 # ======= CONTEÚDO DA SIMULAÇÃO =======
