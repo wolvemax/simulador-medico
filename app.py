@@ -275,11 +275,7 @@ if st.session_state.thread_id and not st.session_state.consulta_finalizada:
         for msg in mensagens:
             if msg.role == "assistant":
                 resposta = msg.content[0].text.value
-
-                with st.chat_message("user", avatar="👨‍⚕️"):
-                    st.markdown("### 📄 Resultado Final")
-                    st.markdown(resposta)
-
+                
                 st.session_state.consulta_finalizada = True
                 registrar_caso(st.session_state.usuario, resposta)
 
