@@ -167,42 +167,66 @@ if st.button("➕ Nova Simulação"):
             if status.status == "completed":
                 break
             time.sleep(1)
-    mensagens = openai.beta.threads.messages.list(thread_id=st.session_state.thread_id).data
-    for msg in mensagens:
-        if msg.role == "assistant":
-            st.session_state.historico = msg.content[0].text.value
-            break
-
+            
 if st.session_state.historico:
     st.markdown("### 👤 Paciente")
     st.info(st.session_state.historico)
-    # Buscar e exibir mensagens da thread atual
+    
+# Função para exibir histórico de mensagens estilo WhatsApp
+
+def renderizar_historico():
     mensagens = openai.beta.threads.messages.list(thread_id=st.session_state.thread_id).data
     mensagens_ordenadas = sorted(mensagens, key=lambda x: x.created_at)
 
     for msg in mensagens_ordenadas:
         if msg.role == "user":
-            st.markdown(f"**👨‍⚕️ Você:** {msg.content[0].text.value}")
+            with st.chat_message("user", avatar="👨‍⚕️"):
+                st.markdown(msg.content[0].text.value)
         elif msg.role == "assistant":
-            st.markdown(f"**🧑‍⚕️ Paciente:** {msg.content[0].text.value}")
+            with st.chat_message("assistant", avatar="🧑‍⚕️"):
+                st.markdown(msg.content[0].text.value)
 
+# Mostrar histórico imediatamente
 if st.session_state.thread_id and not st.session_state.consulta_finalizada:
-    pergunta = st.text_area("Digite sua pergunta ou conduta:")
-    if st.button("Enviar"):
-        if pergunta.strip():
-            openai.beta.threads.messages.create(thread_id=st.session_state.thread_id, role="user", content=pergunta)
-            run = openai.beta.threads.runs.create(thread_id=st.session_state.thread_id, assistant_id=assistant_id_usado)
-            with st.spinner("Pensando..."):
-                while True:
-                    status = openai.beta.threads.runs.retrieve(thread_id=st.session_state.thread_id, run_id=run.id)
-                    if status.status == "completed":
-                        break
-                    time.sleep(1)
+    renderizar_historico()
+
+# Input estilo chat
+if st.session_state.thread_id and not st.session_state.consulta_finalizada:
+    pergunta = st.chat_input("Digite sua pergunta ou conduta:")
+    if pergunta:
+        # Envia pergunta
+        openai.beta.threads.messages.create(
+            thread_id=st.session_state.thread_id,
+            role="user",
+            content=pergunta
+        )
+
+        # Processa com o assistente
+        run = openai.beta.threads.runs.create(
+            thread_id=st.session_state.thread_id,
+            assistant_id=assistant_id_usado
+        )
+
+        with st.spinner("Pensando..."):
+            while True:
+                status = openai.beta.threads.runs.retrieve(
+                    thread_id=st.session_state.thread_id,
+                    run_id=run.id
+                )
+                if status.status == "completed":
+                    break
+                time.sleep(1)
+
+        # Exibe histórico completo, incluindo resposta
+        renderizar_historico()
+
             mensagens = openai.beta.threads.messages.list(thread_id=st.session_state.thread_id).data
             for msg in mensagens:
                 if msg.role == "assistant":
-                    st.markdown(f"**Resposta do paciente:** {msg.content[0].text.value}")
+                    with st.chat_message("assistant", avatar="🧑‍⚕️"):
+                        st.markdown(msg.content[0].text.value)
                     break
+                    
         else:
             st.warning("Digite uma pergunta antes de enviar.")
 
