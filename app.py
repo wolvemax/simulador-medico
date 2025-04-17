@@ -73,9 +73,9 @@ def salvar_nota_usuario(usuario, nota):
 def extrair_nota(texto):
     import re
     try:
-        match = re.search(r"nota\s*[:\-]?\s*(\d+(?:[.,]\d+)?)(?:\s*/?\s*10)?", texto, re.IGNORECASE)
+        match = re.search(r"nota\\s*[:\\-]?\\s*(\\d+(?:[.,]\\d+)?)(?:\\s*/?\\s*10)?", texto, re.IGNORECASE)
         if not match:
-            match = re.search(r"(\d+(?:[.,]\d+)?)\s*/\s*10", texto)
+            match = re.search(r"(\\d+(?:[.,]\\d+)?)\\s*/\\s*10", texto)
         if match:
             return float(match.group(1).replace(",", "."))
     except:
@@ -96,7 +96,7 @@ def renderizar_historico():
                 st.markdown(msg.content[0].text.value)
                 st.caption(f"⏰ {hora}")
 
-# ======= INTERFACE INICIAL =======
+# ======= INTERFACE =======
 if "logado" not in st.session_state:
     st.session_state.logado = False
 if "thread_id" not in st.session_state:
@@ -113,7 +113,8 @@ if not st.session_state.logado:
     with st.form("login_form"):
         usuario = st.text_input("Usuário")
         senha = st.text_input("Senha", type="password")
-        if st.form_submit_button("Entrar"):
+        submitted = st.form_submit_button("Entrar")
+        if submitted:
             if validar_credenciais(usuario, senha):
                 st.session_state.usuario = usuario
                 st.session_state.logado = True
@@ -123,7 +124,7 @@ if not st.session_state.logado:
     st.stop()
 
 st.title("🩺 Simulador Médico Interativo com IA")
-st.markdown(f"👤 Usuário: **{st.session_state.usuario}**")
+st.markdown(f"👤 Usuário: {st.session_state.usuario}")
 
 col1, col2 = st.columns(2)
 col1.metric("📋 Casos finalizados", contar_casos_usuario(st.session_state.usuario))
@@ -165,27 +166,20 @@ if st.button("➕ Nova Simulação"):
             break
     st.rerun()
 
-# ======= BLOCOS FIXOS =======
+# ======= ANAMNESE LATERAL FIXA =======
 st.markdown("""
     <style>
     .anamnese-box {
         position: fixed;
-        top: 100px;
-        right: 20px;
-        width: 300px;
-        height: 600px;
+        top: 120px;
+        right: 25px;
+        width: 320px;
+        height: 560px;
         background-color: #f1f1f1;
-        padding: 15px;
+        padding: 12px;
         border-radius: 10px;
-        box-shadow: 0px 2px 6px rgba(0,0,0,0.2);
-        overflow-y: auto;
-        z-index: 998;
-    }
-    .anamnese-box textarea {
-        width: 100%;
-        height: 500px;
-        resize: none;
-        font-size: 14px;
+        box-shadow: 0 0 8px rgba(0,0,0,0.15);
+        z-index: 1000;
     }
     </style>
 """, unsafe_allow_html=True)
@@ -206,7 +200,7 @@ HDV:
 HD:""", height=500, key="anamnese")
 st.markdown('</div>', unsafe_allow_html=True)
 
-# ======= FLUXO PRINCIPAL =======
+# ======= CONSULTA =======
 if st.session_state.historico:
     st.markdown("### 👤 Identificação do Paciente")
     st.info(st.session_state.historico)
@@ -231,7 +225,7 @@ if st.session_state.thread_id and not st.session_state.consulta_finalizada:
             "Finalizar consulta. A partir do histórico da consulta, gere:\n"
             "1. O prontuário completo do paciente (título: ### Prontuário Completo do Paciente).\n"
             "2. Um feedback educacional completo para o médico.\n"
-            "3. Gere uma nota objetiva de 0 a 10 com base na performance do médico. Escreva obrigatoriamente no formato exato: Nota: X/10.\n"
+            "3. Gere uma nota objetiva de 0 a 10 com base na performance do médico. Escreva obrigatoriamente no formato exato: Nota: X/10."
         )
         openai.beta.threads.messages.create(thread_id=st.session_state.thread_id, role="user", content=mensagem_final)
         run = openai.beta.threads.runs.create(thread_id=st.session_state.thread_id, assistant_id=assistant_id_usado)
