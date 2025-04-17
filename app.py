@@ -188,10 +188,11 @@ st.markdown("""
         border: 1px solid #ccc;
         border-radius: 12px;
         padding: 20px;
-        height: 500px;
+        max-height: 400px;
         overflow-y: auto;
         box-shadow: 0px 4px 8px rgba(0,0,0,0.05);
         margin-bottom: 10px;
+        transition: max-height 0.3s ease;
     }
     </style>
 """, unsafe_allow_html=True)
