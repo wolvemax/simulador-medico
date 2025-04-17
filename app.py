@@ -215,9 +215,20 @@ if st.session_state.thread_id and not st.session_state.consulta_finalizada:
                 st.markdown(resposta)
                 st.session_state.consulta_finalizada = True
                 registrar_caso(st.session_state.usuario, resposta)
+                
+                st.text("🔎 RESPOSTA DA IA (debug):")
+                st.code(resposta)
+
                 nota = extrair_nota(resposta)
+                st.text(f"📌 Nota extraída: {nota}")
+
                 if nota is not None:
                     salvar_nota_usuario(st.session_state.usuario, nota)
                     st.session_state.media_usuario = calcular_media_usuario(st.session_state.usuario)
+                    st.success("✅ Nota salva com sucesso!")
+                else:
+                    st.warning("⚠️ Não foi possível extrair a nota da resposta. Nada foi salvo.")
+
+                    
                 break
 
