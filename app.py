@@ -113,7 +113,10 @@ st.markdown(f"👤 Usuário: **{st.session_state.usuario}**")
 
 col1, col2 = st.columns(2)
 col1.metric("📋 Casos finalizados", contar_casos_usuario(st.session_state.usuario))
-col2.metric("📊 Média global", calcular_media_usuario(st.session_state.usuario))
+if "media_usuario" not in st.session_state:
+    st.session_state.media_usuario = calcular_media_usuario(st.session_state.usuario)
+
+col2.metric("📊 Média global", st.session_state.media_usuario)
 
 especialidade = st.radio("Especialidade:", ["PSF", "Pediatria", "Emergências"])
 
@@ -211,5 +214,6 @@ if st.session_state.thread_id and not st.session_state.consulta_finalizada:
                 nota = extrair_nota(resposta)
                 if nota is not None:
                     salvar_nota_usuario(st.session_state.usuario, nota)
+    s               st.session_state.media_usuario = calcular_media_usuario(st.session_state.usuario)
                 break
 
