@@ -5,7 +5,6 @@ from datetime import datetime
 import time
 import openai
 import gspread
-import base64
 
 # ======= CONFIGURAÇÕES =======
 st.set_page_config(page_title="Bem vindo ao SIMULAMAX - Simulador Médico IA", page_icon="🩺", layout="wide")
@@ -19,6 +18,12 @@ scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/au
 google_creds = dict(st.secrets["google_credentials"])
 creds = ServiceAccountCredentials.from_json_keyfile_dict(google_creds, scope)
 client_gspread = gspread.authorize(creds)
+
+# ======= GARANTIR ESTADO INICIAL =======
+REQUIRED_KEYS = ["logado", "thread_id", "historico", "consulta_finalizada", "prompt_inicial", "media_usuario"]
+for key in REQUIRED_KEYS:
+    if key not in st.session_state:
+        st.session_state[key] = False if key == "logado" else None
 
 # ======= FUNÇÕES UTILITÁRIAS =======
 def remover_acentos(texto):
@@ -83,49 +88,23 @@ def extrair_nota(texto):
     return None
 
 def renderizar_historico():
+    if not st.session_state.thread_id:
+        return
     mensagens = openai.beta.threads.messages.list(thread_id=st.session_state.thread_id).data
     mensagens_ordenadas = sorted(mensagens, key=lambda x: x.created_at)
     for msg in mensagens_ordenadas:
-        if "Iniciar nova simulação clínica" in msg.content[0].text.value:
+        conteudo = msg.content[0].text.value
+        if "Iniciar nova simulação clínica" in conteudo:
             continue
         hora = datetime.fromtimestamp(msg.created_at).strftime("%H:%M")
         if msg.role == "user":
             with st.chat_message("user", avatar="👨‍⚕️"):
-                st.markdown(msg.content[0].text.value)
+                st.markdown(conteudo)
                 st.caption(f"⏰ {hora}")
         elif msg.role == "assistant":
             with st.chat_message("assistant", avatar="🧑‍⚕️"):
-                st.markdown(msg.content[0].text.value)
+                st.markdown(conteudo)
                 st.caption(f"⏰ {hora}")
-
-def gerar_feedback_personalizado():
-    return {
-        "name": "gerar_feedback_consulta",
-        "description": "Gera avaliação médica detalhada da simulação.",
-        "parameters": {
-            "type": "object",
-            "properties": {
-                "identificacao": {"type": "string", "description": "Avaliação da identificação e anamnese inicial."},
-                "raciocinio": {"type": "string", "description": "Avaliação da construção do raciocínio clínico."},
-                "conduta": {"type": "string", "description": "Avaliação da assertividade da conduta final."},
-                "nota": {"type": "number", "description": "Nota final objetiva de 0 a 10."},
-                "comentario_geral": {"type": "string", "description": "Comentário geral educacional."}
-            },
-            "required": ["identificacao", "raciocinio", "conduta", "nota", "comentario_geral"]
-        }
-    }
-
-# ======= ESTADO INICIAL =======
-if "logado" not in st.session_state:
-    st.session_state.logado = False
-if "thread_id" not in st.session_state:
-    st.session_state.thread_id = None
-if "historico" not in st.session_state:
-    st.session_state.historico = ""
-if "consulta_finalizada" not in st.session_state:
-    st.session_state.consulta_finalizada = False
-if "prompt_inicial" not in st.session_state:
-    st.session_state.prompt_inicial = ""
 
 # ======= LOGIN =======
 if not st.session_state.logado:
@@ -143,65 +122,45 @@ if not st.session_state.logado:
                 st.error("Usuário ou senha inválidos.")
     st.stop()
 
-# ======= INTERFACE =======
+# ======= INTERFACE LOGADA =======
 st.title("🩺 Simulador Médico Interativo com IA")
 st.markdown(f"👤 Usuário: **{st.session_state.usuario}**")
 
 col1, col2 = st.columns(2)
 col1.metric("📋 Casos finalizados", contar_casos_usuario(st.session_state.usuario))
-if "media_usuario" not in st.session_state:
+if not st.session_state.media_usuario:
     st.session_state.media_usuario = calcular_media_usuario(st.session_state.usuario)
 col2.metric("📊 Média global", st.session_state.media_usuario)
 
 especialidade = st.radio("Especialidade:", ["PSF", "Pediatria", "Emergências"])
-
-if especialidade == "Pediatria":
-    assistant_id_usado = ASSISTANT_PEDIATRIA_ID
-elif especialidade == "Emergências":
-    assistant_id_usado = ASSISTANT_EMERGENCIAS_ID
-else:
-    assistant_id_usado = ASSISTANT_ID
+assistant_id_usado = ASSISTANT_ID if especialidade == "PSF" else ASSISTANT_PEDIATRIA_ID if especialidade == "Pediatria" else ASSISTANT_EMERGENCIAS_ID
 
 if st.button("➕ Nova Simulação"):
     st.session_state.historico = ""
     st.session_state.thread_id = openai.beta.threads.create().id
     st.session_state.consulta_finalizada = False
-
-    if especialidade == "Emergências":
-        st.session_state.prompt_inicial = ""
-    elif especialidade == "Pediatria":
-        st.session_state.prompt_inicial = "Iniciar nova simulação clínica pediátrica com identificação e queixa principal."
-    else:
-        st.session_state.prompt_inicial = "Iniciar nova simulação clínica com paciente simulado. Apenas início da consulta com identificação e queixa principal."
-
-    if st.session_state.prompt_inicial:
-        openai.beta.threads.messages.create(
-            thread_id=st.session_state.thread_id,
-            role="user",
-            content=st.session_state.prompt_inicial
-        )
-
-    run = openai.beta.threads.runs.create(
-        thread_id=st.session_state.thread_id,
-        assistant_id=assistant_id_usado
-    )
-
-    with st.spinner("Gerando paciente..."):
-        while True:
-            status = openai.beta.threads.runs.retrieve(thread_id=st.session_state.thread_id, run_id=run.id)
-            if status.status == "completed":
+    prompt = ""
+    if especialidade == "Pediatria":
+        prompt = "Iniciar nova simulação clínica pediátrica com identificação e queixa principal."
+    elif especialidade == "PSF":
+        prompt = "Iniciar nova simulação clínica com paciente simulado. Apenas início da consulta com identificação e queixa principal."
+    if prompt:
+        openai.beta.threads.messages.create(thread_id=st.session_state.thread_id, role="user", content=prompt)
+        run = openai.beta.threads.runs.create(thread_id=st.session_state.thread_id, assistant_id=assistant_id_usado)
+        with st.spinner("Gerando paciente..."):
+            while True:
+                status = openai.beta.threads.runs.retrieve(thread_id=st.session_state.thread_id, run_id=run.id)
+                if status.status == "completed":
+                    break
+                time.sleep(1)
+        mensagens = openai.beta.threads.messages.list(thread_id=st.session_state.thread_id).data
+        for msg in mensagens:
+            if msg.role == "assistant":
+                st.session_state.historico = msg.content[0].text.value
                 break
-            time.sleep(1)
+        st.rerun()
 
-    mensagens = openai.beta.threads.messages.list(thread_id=st.session_state.thread_id).data
-    for msg in mensagens:
-        if msg.role == "assistant":
-            st.session_state.historico = msg.content[0].text.value
-            break
-
-    st.rerun()
-
-# ======= CHAT INTERATIVO =======
+# ======= CONTEÚDO PRINCIPAL =======
 if st.session_state.historico:
     st.markdown("### 👤 Identificação do Paciente")
     st.info(st.session_state.historico)
@@ -210,23 +169,11 @@ if st.session_state.thread_id and not st.session_state.consulta_finalizada:
     renderizar_historico()
     pergunta = st.chat_input("Digite sua pergunta ou conduta:")
     if pergunta:
-        openai.beta.threads.messages.create(
-            thread_id=st.session_state.thread_id,
-            role="user",
-            content=pergunta
-        )
-
-        run = openai.beta.threads.runs.create(
-            thread_id=st.session_state.thread_id,
-            assistant_id=assistant_id_usado
-        )
-
+        openai.beta.threads.messages.create(thread_id=st.session_state.thread_id, role="user", content=pergunta)
+        run = openai.beta.threads.runs.create(thread_id=st.session_state.thread_id, assistant_id=assistant_id_usado)
         with st.spinner("Pensando..."):
             while True:
-                status = openai.beta.threads.runs.retrieve(
-                    thread_id=st.session_state.thread_id,
-                    run_id=run.id
-                )
+                status = openai.beta.threads.runs.retrieve(thread_id=st.session_state.thread_id, run_id=run.id)
                 if status.status == "completed":
                     break
                 time.sleep(1)
@@ -240,17 +187,13 @@ if st.session_state.thread_id and not st.session_state.consulta_finalizada:
             assistant_id=assistant_id_usado,
             tool_choice={"type": "function", "function": {"name": "gerar_feedback_consulta"}}
         )
-
-        with st.spinner("Gerando avaliação final da consulta..."):
+        with st.spinner("Gerando relatório da consulta..."):
             while True:
                 status = openai.beta.threads.runs.retrieve(
-                    thread_id=st.session_state.thread_id,
-                    run_id=run.id
-                )
+                    thread_id=st.session_state.thread_id, run_id=run.id)
                 if status.status == "completed":
                     break
                 time.sleep(1)
-
         mensagens = openai.beta.threads.messages.list(thread_id=st.session_state.thread_id).data
         for msg in mensagens:
             if msg.role == "assistant":
@@ -258,7 +201,6 @@ if st.session_state.thread_id and not st.session_state.consulta_finalizada:
                 with st.chat_message("assistant", avatar="🧑‍⚕️"):
                     st.markdown("### 📄 Resultado Final")
                     st.markdown(resposta)
-
                 st.session_state.consulta_finalizada = True
                 registrar_caso(st.session_state.usuario, resposta)
                 nota = extrair_nota(resposta)
