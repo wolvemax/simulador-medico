@@ -179,7 +179,7 @@ if st.session_state.thread_id and not st.session_state.consulta_finalizada:
                 time.sleep(1)
         st.rerun()
 
-# ======= FINALIZAR CONSULTA COM VERIFICAÇÃO =======
+# ======= FINALIZAR CONSULTA =======
 if st.session_state.thread_id and not st.session_state.consulta_finalizada:
     if st.button("✅ Finalizar Consulta") and not st.session_state.run_em_andamento:
         st.session_state.run_em_andamento = True
