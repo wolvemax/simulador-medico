@@ -243,10 +243,26 @@ if st.session_state.thread_id and not st.session_state.consulta_finalizada:
 
 # ======= FINALIZAR CONSULTA =======
 if st.session_state.thread_id and not st.session_state.consulta_finalizada:
-    with st.container():
+st.markdown("""
+        <style>
+        .sticky-button {
+            position: fixed;
+            bottom: 70px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 999;
+            background-color: white;
+            padding: 8px 16px;
+            border-radius: 12px;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+        }
+        </style>
+    """, unsafe_allow_html=True)
+
+    # Botão visível fora do scroll
     st.markdown('<div class="sticky-button">', unsafe_allow_html=True)
     if st.button("✅ Finalizar Consulta"):
-    st.markdown('</div>', unsafe_allow_html=True)
+        st.markdown('</div>', unsafe_allow_html=True)
 
         mensagem_final = (
             "Finalizar consulta. A partir do histórico da consulta, gere:\n"
@@ -254,6 +270,7 @@ if st.session_state.thread_id and not st.session_state.consulta_finalizada:
             "2. Um feedback educacional completo para o médico.\n"
             "3. Gere uma nota objetiva de 0 a 10 com base na performance do médico. Escreva obrigatoriamente no formato exato: Nota: X/10.\n"
         )
+
         openai.beta.threads.messages.create(
             thread_id=st.session_state.thread_id,
             role="user",
@@ -279,7 +296,7 @@ if st.session_state.thread_id and not st.session_state.consulta_finalizada:
         for msg in mensagens:
             if msg.role == "assistant":
                 resposta = msg.content[0].text.value
-                
+
                 st.session_state.consulta_finalizada = True
                 registrar_caso(st.session_state.usuario, resposta)
 
@@ -291,3 +308,5 @@ if st.session_state.thread_id and not st.session_state.consulta_finalizada:
                 else:
                     st.warning("⚠️ Não foi possível extrair a nota.")
                 break
+    else:
+        st.markdown('</div>', unsafe_allow_html=True)  # fecha <div> mesmo se botão não clicado
