@@ -8,7 +8,7 @@ import gspread
 import base64
 
 # ======= CONFIGURAÇÕES =======
-st.set_page_config(page_title="Simulador Médico IA", page_icon="🩺", layout="wide")
+st.set_page_config(page_title="Bem vindo ao SIMULAMAX - Simulador Médico IA", page_icon="🩺", layout="wide")
 
 openai.api_key = st.secrets["openai"]["api_key"]
 ASSISTANT_ID = st.secrets["assistants"]["default"]
