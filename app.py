@@ -99,6 +99,13 @@ def obter_ultimos_resumos(usuario, n=10):
         st.warning(f"Erro ao obter resumos de casos anteriores: {e}")
         return []
 
+def aguardar_fim_do_run(thread_id):
+    while True:
+        runs = openai.beta.threads.runs.list(thread_id=thread_id).data
+        if runs and runs[0].status != "in_progress":
+            break
+        time.sleep(1)
+
 def renderizar_historico():
     if not st.session_state.thread_id:
         return
