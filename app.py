@@ -21,7 +21,7 @@ creds = ServiceAccountCredentials.from_json_keyfile_dict(google_creds, scope)
 client_gspread = gspread.authorize(creds)
 
 # ======= GARANTIR ESTADO INICIAL =======
-REQUIRED_KEYS = ["logado", "thread_id", "historico", "consulta_finalizada", "prompt_inicial", "media_usuario", "run_em_andamento"]
+REQUIRED_KEYS = ["logado", "thread_id", "historico", "consulta_finalizada", "prompt_inicial", "media_usuario", "run_em_andamento", "especialidade"]
 for key in REQUIRED_KEYS:
     if key not in st.session_state:
         st.session_state[key] = False if key == "logado" else None
@@ -69,7 +69,8 @@ def calcular_media_usuario(usuario):
 def registrar_caso(usuario, texto, origem):
     sheet = client_gspread.open("LogsSimulador").worksheet("Pagina1")
     datahora = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    sheet.append_row([usuario, datahora, texto, origem])
+    resumo = texto[:300].replace("\n", " ").strip()
+    sheet.append_row([usuario, datahora, resumo, origem], value_input_option="USER_ENTERED")
 
 def salvar_nota_usuario(usuario, nota):
     sheet = client_gspread.open("notasSimulador").sheet1
@@ -87,11 +88,11 @@ def extrair_nota(texto):
         pass
     return None
 
-def obter_ultimos_resumos(usuario, n=10):
+def obter_ultimos_resumos(usuario, especialidade, n=10):
     try:
         sheet = client_gspread.open("LogsSimulador").worksheet("Pagina1")
         dados = sheet.get_all_records()
-        historico = [linha for linha in dados if str(linha.get("usuario", "")).strip().lower() == usuario.lower()]
+        historico = [linha for linha in dados if str(linha.get("usuario", "")).strip().lower() == usuario.lower() and str(linha.get("origem", "")).lower() == especialidade.lower()]
         ultimos = historico[-n:]
         resumos = [linha.get("resumo", "")[:250] for linha in ultimos if linha.get("resumo", "")]  # pega o início do resumo
         return resumos
