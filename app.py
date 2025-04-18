@@ -107,7 +107,7 @@ def renderizar_historico():
 
 # ===== LOGIN =====
 if not st.session_state.logado:
-    st.title("🔐 Simulador Médico – Login")
+    st.title("🔐 Simulamax - Simulador Médico – Login")
     with st.form("login"):
         u=st.text_input("Usuário"); s=st.text_input("Senha",type="password")
         if st.form_submit_button("Entrar") and validar_credenciais(u,s):
