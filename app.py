@@ -66,11 +66,12 @@ def calcular_media_usuario(usuario):
     except:
         return 0.0
 
-def registrar_caso(usuario, texto, origem):
+def registrar_caso(usuario, texto):
     sheet = client_gspread.open("LogsSimulador").worksheet("Pagina1")
     datahora = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     resumo = texto[:300].replace("\n", " ").strip()
-    sheet.append_row([usuario, datahora, resumo, origem], value_input_option="USER_ENTERED")
+    assistente = st.session_state.get("especialidade", "desconhecido")
+    sheet.append_row([usuario, datahora, resumo, assistente], value_input_option="USER_ENTERED")
 
 def salvar_nota_usuario(usuario, nota):
     sheet = client_gspread.open("notasSimulador").sheet1
@@ -92,7 +93,7 @@ def obter_ultimos_resumos(usuario, especialidade, n=10):
     try:
         sheet = client_gspread.open("LogsSimulador").worksheet("Pagina1")
         dados = sheet.get_all_records()
-        historico = [linha for linha in dados if str(linha.get("usuario", "")).strip().lower() == usuario.lower() and str(linha.get("origem", "")).lower() == especialidade.lower()]
+        historico = [linha for linha in dados if str(linha.get("usuario", "")).strip().lower() == usuario.lower() and str(linha.get("assistente", "")).lower() == especialidade.lower()]
         ultimos = historico[-n:]
         resumos = [linha.get("resumo", "")[:250] for linha in ultimos if linha.get("resumo", "")]  # pega o início do resumo
         return resumos
