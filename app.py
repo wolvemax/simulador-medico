@@ -95,7 +95,7 @@ def obter_ultimos_resumos(usuario, especialidade, n=10):
         dados = sheet.get_all_records()
         historico = [linha for linha in dados if str(linha.get("usuario", "")).strip().lower() == usuario.lower() and str(linha.get("assistente", "")).lower() == especialidade.lower()]
         ultimos = historico[-n:]
-        resumos = [linha.get("resumo", "")[:250] for linha in ultimos if linha.get("resumo", "")]  # pega o início do resumo
+        resumos = [linha.get("resumo", "")[:250] for linha in ultimos if linha.get("resumo", "")]
         return resumos
     except Exception as e:
         st.warning(f"Erro ao obter resumos de casos anteriores: {e}")
@@ -118,11 +118,7 @@ def renderizar_historico():
         if "Iniciar nova simulação clínica" in conteudo:
             continue
         hora = datetime.fromtimestamp(msg.created_at).strftime("%H:%M")
-        if msg.role == "user":
-            with st.chat_message("user", avatar="👨‍⚕️"):
-                st.markdown(conteudo)
-                st.caption(f"⏰ {hora}")
-        elif msg.role == "assistant":
-            with st.chat_message("assistant", avatar="🧑‍⚕️"):
-                st.markdown(conteudo)
-                st.caption(f"⏰ {hora}")
+        avatar = "👨‍⚕️" if msg.role == "user" else "🧑‍⚕️"
+        with st.chat_message(msg.role, avatar=avatar):
+            st.markdown(conteudo)
+            st.caption(f"⏰ {hora}")
