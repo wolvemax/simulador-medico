@@ -93,7 +93,7 @@ def obter_ultimos_resumos(usuario, n=10):
         dados = sheet.get_all_records()
         historico = [linha for linha in dados if str(linha.get("usuario", "")).strip().lower() == usuario.lower()]
         ultimos = historico[-n:]
-        resumos = [linha.get("texto", "")[:250] for linha in ultimos if linha.get("texto", "")]  # pega o início do caso
+        resumos = [linha.get("resumo", "")[:250] for linha in ultimos if linha.get("resumo", "")]  # pega o início do resumo
         return resumos
     except Exception as e:
         st.warning(f"Erro ao obter resumos de casos anteriores: {e}")
