@@ -61,6 +61,7 @@ def calcular_media_usuario(user):
              if l.get("usuario","").lower() == user.lower()]
     return round(sum(notas)/len(notas),2) if notas else 0.0
 
+st.write("🧪 Salvando especialidade como:", esp)
 def registrar_caso(user, texto, especialidade):
     datahora = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     resumo   = texto[:300].replace("\n"," ").strip()
