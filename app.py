@@ -166,7 +166,7 @@ dados = LOG_SHEET.get_all_records()
 usuario = st.session_state.usuario.lower()
 total_consultas = sum(1 for l in dados if l.get("usuario", "").lower() == usuario)
 total_especialidade = sum(1 for l in dados if l.get("usuario", "").lower() == usuario
-                          and l.get("assistente", "").strip().lower() == esp.lower())
+                          and (l.get("assistente", "") or l.get("especialidade", "")).strip().lower() == esp.lower()
 
 if total_consultas > 0:
     percentual = (total_especialidade / total_consultas) * 100
