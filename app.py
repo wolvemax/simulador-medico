@@ -13,7 +13,7 @@ ASSISTANT_ID           = st.secrets["assistants"]["default"]
 ASSISTANT_PEDIATRIA_ID = st.secrets["assistants"]["pediatria"]
 ASSISTANT_EMERGENCIAS_ID = st.secrets["assistants"]["emergencias"]
 
-# Google Sheets
+# Google Sheets
 scope = ["https://spreadsheets.google.com/feeds",
          "https://www.googleapis.com/auth/drive"]
 creds  = ServiceAccountCredentials.from_json_keyfile_dict(
@@ -57,8 +57,8 @@ def contar_casos_usuario(user):
 
 def calcular_media_usuario(user):
     dados = NOTA_SHEET.get_all_records()
-    notas=[float(l["nota"]) for l in dados
-           if l.get("usuario","").lower()==user.lower()]
+    notas = [float(l["nota"]) for l in dados
+             if l.get("usuario","").lower() == user.lower()]
     return round(sum(notas)/len(notas),2) if notas else 0.0
 
 def registrar_caso(user, texto, especialidade):
@@ -74,21 +74,20 @@ def salvar_nota_usuario(user, nota):
 
 def extrair_nota(resp):
     m=re.search(r"nota\s*[:\-]?\s*(\d+(?:[.,]\d+)?)", resp, re.I)
-    return float(m.group(1).replace(",","."))
-    if m else None
+    return float(m.group(1).replace(",", ".")) if m else None
 
 def obter_ultimos_resumos(user, especialidade, n=10):
     dados = LOG_SHEET.get_all_records()
-    historico=[l for l in dados
-               if l.get("usuario","").lower()==user.lower()
-               and l.get("assistente","").lower()==especialidade.lower()]
+    historico = [l for l in dados
+                 if l.get("usuario", "").lower() == user.lower()
+                 and l.get("especialidade", "").lower() == especialidade.lower()]
     ult = historico[-n:]
-    return [l.get("resumo","")[:250] for l in ult]
+    return [l.get("resumo", "")[:250] for l in ult]
 
 def aguardar_run(tid):
     while True:
         runs = openai.beta.threads.runs.list(thread_id=tid).data
-        if not runs or runs[0].status!="in_progress":
+        if not runs or runs[0].status != "in_progress":
             break
         time.sleep(0.8)
 
@@ -132,17 +131,15 @@ assistant_id = {"PSF":ASSISTANT_ID,"Pediatria":ASSISTANT_PEDIATRIA_ID,
 if st.button("➕ Nova Simulação"):
     st.session_state.thread_id=None
     st.session_state.consulta_finalizada=False
-    st.session_state.especialidade_atual = esp         # << fixa!
+    st.session_state.especialidade_atual = esp
     st.session_state.thread_id=openai.beta.threads.create().id
 
-    # ---- prompt inicial dinâmico ----
     prompt_map={
         "PSF":"Iniciar nova simulação clínica com paciente simulado. Apenas início da consulta com identificação e queixa principal.",
         "Pediatria":"Iniciar nova simulação clínica pediátrica com identificação e queixa principal.",
         "Emergências":""}
     prompt_inicial = prompt_map[esp]
 
-    # Contexto anti‑repetição
     resumos = obter_ultimos_resumos(st.session_state.usuario, esp, 10)
     contexto = "\n".join(resumos) if resumos else "Nenhum caso anterior."
     if prompt_inicial:
@@ -196,7 +193,7 @@ if st.session_state.thread_id and not st.session_state.consulta_finalizada:
                     st.markdown("### 📄 Resultado Final"); st.markdown(resposta)
                 st.session_state.consulta_finalizada=True
                 registrar_caso(st.session_state.usuario, resposta,
-                               st.session_state.especialidade_atual)   # <- grava certo
+                               st.session_state.especialidade_atual)  # aqui usa a especialidade correta
                 nota=extrair_nota(resposta)
                 if nota is not None:
                     salvar_nota_usuario(st.session_state.usuario, nota)
