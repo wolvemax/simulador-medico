@@ -154,6 +154,7 @@ col2.metric("📊 Média global", st.session_state.media_usuario)
 
 # ===== ESPECIALIDADE =====
 esp = st.radio("Especialidade:", ["PSF", "Pediatria", "Emergências"])
+st.session_state.especialidade_atual = esp
 assistant_id = {
     "PSF": ASSISTANT_ID,
     "Pediatria": ASSISTANT_PEDIATRIA_ID,
