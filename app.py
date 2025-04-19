@@ -75,7 +75,8 @@ def extrair_nota(resp):
 
 def obter_ultimos_resumos(user, especialidade, n=10):
     dados = LOG_SHEET.get_all_records()
-    historico = [l for l in dados if l.get("usuario", "").lower() == user.lower() and l.get("assistente", "").lower() == especialidade.lower()]
+    historico = [l for l in dados if l.get("usuario", "").lower() == user.lower()
+                 and l.get("especialidade", "").lower() == especialidade.lower()]
     ult = historico[-n:]
     return [l.get("resumo", "")[:250] for l in ult]
 
@@ -131,57 +132,29 @@ assistant_id = {
 }[esp]
 
 # Mostrar número de consultas por especialidade
+# ===== CONTAGEM DE CASOS POR ESPECIALIDADE =====
 dados = LOG_SHEET.get_all_records()
 usuario = st.session_state.usuario.lower()
+esp = st.session_state.especialidade_atual  # Usa sempre a especialidade salva
 
-# Total geral
-total_consultas = sum(1 for l in dados if l.get("usuario", "").lower() == usuario)
+total_consultas = sum(
+    1 for l in dados if l.get("usuario", "").lower() == usuario
+)
 
-# Total por especialidade selecionada
 total_especialidade = sum(
     1 for l in dados
     if l.get("usuario", "").lower() == usuario and
-       l.get("assistente", "").strip().lower() == esp.lower()
+       l.get("especialidade", "").strip().lower() == esp.lower()
 )
 
-# Mostrar contagem informativa
 if total_consultas > 0:
     percentual = (total_especialidade / total_consultas) * 100
     st.success(
         f"📈 Foram realizadas **{total_especialidade}** consultas de **{esp}**, "
-        f"de um total de **{total_consultas}** casos finalizados. "
-        f"Isso representa **{percentual:.1f}%** dos seus atendimentos."
+        f"de um total de **{total_consultas}**. Isso representa **{percentual:.1f}%** dos seus atendimentos."
     )
 else:
     st.info("ℹ️ Nenhuma consulta finalizada ainda para este usuário.")
-
-# ===== NOVA SIMULAÇÃO =====
-if st.button("➕ Nova Simulação"):
-    st.session_state.thread_id = openai.beta.threads.create().id
-    st.session_state.consulta_finalizada = False
-    resumos = obter_ultimos_resumos(st.session_state.usuario, esp, 10)
-    contexto = "\n".join(resumos) if resumos else ""
-    contexto = contexto[:4000]
-    if contexto:
-        try:
-            openai.beta.threads.messages.create(
-                thread_id=st.session_state.thread_id,
-                role="user",
-                content=f"Casos anteriores do aluno:\n{contexto}"
-            )
-        except Exception as e:
-            st.warning(f"⚠️ Erro ao enviar contexto: {e}")
-    run = openai.beta.threads.runs.create(
-        thread_id=st.session_state.thread_id,
-        assistant_id=assistant_id
-    )
-    aguardar_run(st.session_state.thread_id)
-    mensagens = openai.beta.threads.messages.list(thread_id=st.session_state.thread_id).data
-    for m in mensagens:
-        if m.role == "assistant" and hasattr(m, "content") and m.content:
-            st.session_state.historico = m.content[0].text.value
-            break
-    st.rerun()
 
 # ===== INTERAÇÃO COM A CONSULTA =====
 if st.session_state.historico and not st.session_state.consulta_finalizada:
@@ -248,4 +221,5 @@ if st.session_state.thread_id and not st.session_state.consulta_finalizada:
                 salvar_nota_usuario(st.session_state.usuario, nota)
                 st.session_state.media_usuario = calcular_media_usuario(st.session_state.usuario)
         else:
-            st.warning("⚠️ Não foi possível e
+          st.warning("⚠️ Não foi possível encontrar a resposta final gerada pela IA. Tente novamente.")
+
