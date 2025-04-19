@@ -237,7 +237,9 @@ if st.session_state.thread_id and not st.session_state.consulta_finalizada:
         aguardar_run(st.session_state.thread_id)
         msgs=openai.beta.threads.messages.list(thread_id=st.session_state.thread_id).data
         for m in msgs:
-            if m.role=="assistant":
+            if m.role=="assistant":registrar_caso(st.session_state.usuario, resposta_final, esp)
+
+
                 resposta=m.content[0].text.value
                 with st.chat_message("assistant", avatar="🧑‍⚕️"):
                     st.markdown("### 📄 Resultado Final"); st.markdown(resposta)
