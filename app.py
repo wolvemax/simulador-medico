@@ -14,8 +14,7 @@ ASSISTANT_PEDIATRIA_ID = st.secrets["assistants"]["pediatria"]
 ASSISTANT_EMERGENCIAS_ID = st.secrets["assistants"]["emergencias"]
 
 # ===== PLANILHAS SEGURAS =====
-scope = ["https://spreadsheets.google.com/feeds",
-         "https://www.googleapis.com/auth/drive"]
+scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
 creds = ServiceAccountCredentials.from_json_keyfile_dict(
             dict(st.secrets["google_credentials"]), scope)
 client_gspread = gspread.authorize(creds)
@@ -61,9 +60,15 @@ def calcular_media_usuario(user):
     return round(sum(notas) / len(notas), 2) if notas else 0.0
 
 def registrar_caso(user, texto, especialidade):
-    datahora = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    resumo = texto[:300].replace("\n", " ").strip()
-    LOG_SHEET.append_row([user, datahora, resumo, especialidade], value_input_option="USER_ENTERED")
+    try:
+        datahora = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        resumo = texto[:300].replace("\n", " ").strip()
+        st.write("📤 Enviando para LOG:", {
+            "usuario": user, "especialidade": especialidade
+        })
+        LOG_SHEET.append_row([user, datahora, resumo, especialidade], value_input_option="USER_ENTERED")
+    except Exception as e:
+        st.error(f"❌ Erro ao registrar o caso no LOG: {e}")
 
 def salvar_nota_usuario(user, nota):
     datahora = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -131,28 +136,19 @@ assistant_id = {
     "Emergências": ASSISTANT_EMERGENCIAS_ID
 }[esp]
 
-# Mostrar número de consultas por especialidade
 # ===== CONTAGEM DE CASOS POR ESPECIALIDADE =====
 dados = LOG_SHEET.get_all_records()
 usuario = st.session_state.usuario.lower()
-esp = st.session_state.especialidade_atual  # Usa sempre a especialidade salva
+esp = st.session_state.especialidade_atual
 
-total_consultas = sum(
-    1 for l in dados if l.get("usuario", "").lower() == usuario
-)
-
-total_especialidade = sum(
-    1 for l in dados
-    if l.get("usuario", "").lower() == usuario and
-       l.get("especialidade", "").strip().lower() == esp.lower()
-)
+total_consultas = sum(1 for l in dados if l.get("usuario", "").lower() == usuario)
+total_especialidade = sum(1 for l in dados if l.get("usuario", "").lower() == usuario and
+                          l.get("especialidade", "").strip().lower() == esp.lower())
 
 if total_consultas > 0:
     percentual = (total_especialidade / total_consultas) * 100
-    st.success(
-        f"📈 Foram realizadas **{total_especialidade}** consultas de **{esp}**, "
-        f"de um total de **{total_consultas}**. Isso representa **{percentual:.1f}%** dos seus atendimentos."
-    )
+    st.success(f"📈 Foram realizadas **{total_especialidade}** consultas de **{esp}**, "
+               f"de um total de **{total_consultas}**. Isso representa **{percentual:.1f}%** dos seus atendimentos.")
 else:
     st.info("ℹ️ Nenhuma consulta finalizada ainda para este usuário.")
 
@@ -167,13 +163,10 @@ if st.session_state.thread_id and not st.session_state.consulta_finalizada:
     if pergunta:
         openai.beta.threads.messages.create(
             thread_id=st.session_state.thread_id,
-            role="user",
-            content=pergunta
-        )
+            role="user", content=pergunta)
         run = openai.beta.threads.runs.create(
             thread_id=st.session_state.thread_id,
-            assistant_id=assistant_id
-        )
+            assistant_id=assistant_id)
         aguardar_run(st.session_state.thread_id)
         st.rerun()
 
@@ -212,14 +205,12 @@ if st.session_state.thread_id and not st.session_state.consulta_finalizada:
 
             st.session_state.consulta_finalizada = True
 
-            # Debug de especialidade salva
-            st.write("🧪 Salvando especialidade como:", esp)
-            registrar_caso(st.session_state.usuario, resposta_final, esp)
+            especialidade = st.session_state.get("especialidade_atual", "Desconhecida")
+            registrar_caso(st.session_state.usuario, resposta_final, especialidade)
 
             nota = extrair_nota(resposta_final)
             if nota is not None:
                 salvar_nota_usuario(st.session_state.usuario, nota)
                 st.session_state.media_usuario = calcular_media_usuario(st.session_state.usuario)
         else:
-          st.warning("⚠️ Não foi possível encontrar a resposta final gerada pela IA. Tente novamente.")
-
+            st.warning("⚠️ Não foi possível encontrar a resposta final gerada pela IA. Tente novamente.")
