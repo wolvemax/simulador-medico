@@ -152,10 +152,30 @@ if st.session_state.media_usuario==0:
     st.session_state.media_usuario=calcular_media_usuario(st.session_state.usuario)
 col2.metric("📊 Média global", st.session_state.media_usuario)
 
-# -------- Escolher especialidade --------
-esp = st.radio("Especialidade:", ["PSF","Pediatria","Emergências"])
-assistant_id = {"PSF":ASSISTANT_ID,"Pediatria":ASSISTANT_PEDIATRIA_ID,
-                "Emergências":ASSISTANT_EMERGENCIAS_ID}[esp]
+# ===== ESPECIALIDADE =====
+esp = st.radio("Especialidade:", ["PSF", "Pediatria", "Emergências"])
+assistant_id = {
+    "PSF": ASSISTANT_ID,
+    "Pediatria": ASSISTANT_PEDIATRIA_ID,
+    "Emergências": ASSISTANT_EMERGENCIAS_ID
+}[esp]
+st.session_state.especialidade_atual = esp
+
+# ===== CONTAGEM DE CASOS POR ESPECIALIDADE =====
+dados = LOG_SHEET.get_all_records()
+usuario = st.session_state.usuario.lower()
+total_consultas = sum(1 for l in dados if l.get("usuario", "").lower() == usuario)
+total_especialidade = sum(1 for l in dados if l.get("usuario", "").lower() == usuario
+                          and l.get("assistente", "").strip().lower() == esp.lower())
+
+if total_consultas > 0:
+    percentual = (total_especialidade / total_consultas) * 100
+    st.success(
+        f"📈 Foram realizadas **{total_especialidade}** consultas de **{esp}**, "
+        f"de um total de **{total_consultas}**. Isso representa **{percentual:.1f}%** dos seus atendimentos."
+    )
+else:
+    st.info("ℹ️ Nenhuma consulta finalizada ainda para este usuário.")
 
 # ===== NOVA SIMULAÇÃO =====
 if st.button("➕ Nova Simulação"):
