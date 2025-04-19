@@ -19,8 +19,8 @@ creds = ServiceAccountCredentials.from_json_keyfile_dict(
             dict(st.secrets["google_credentials"]), scope)
 client_gspread = gspread.authorize(creds)
 
-LOG_SHEET = client_gspread.open("LogsSimulador").worksheet("Pagina1")
-NOTA_SHEET = client_gspread.open("notasSimulador").sheet1
+LOG_SHEET   = client_gspread.open("LogsSimulador").worksheet("Pagina1")
+NOTA_SHEET  = client_gspread.open("notasSimulador").sheet1
 LOGIN_SHEET = client_gspread.open("LoginSimulador").sheet1
 
 # ===== ESTADO PADRÃO =====
@@ -61,12 +61,13 @@ def calcular_media_usuario(user):
 
 def registrar_caso(user, texto, especialidade):
     try:
+        if especialidade.strip().lower() not in ["psf", "pediatria", "emergências"]:
+            st.error(f"🚫 Especialidade inválida detectada: '{especialidade}' — o caso não será salvo.")
+            return
         datahora = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         resumo = texto[:300].replace("\n", " ").strip()
-        st.write("📤 Enviando para LOG:", {
-            "usuario": user, "especialidade": especialidade
-        })
         LOG_SHEET.append_row([user, datahora, resumo, especialidade], value_input_option="USER_ENTERED")
+        st.write(f"📤 Log registrado com sucesso: {especialidade}")
     except Exception as e:
         st.error(f"❌ Erro ao registrar o caso no LOG: {e}")
 
@@ -140,7 +141,6 @@ assistant_id = {
 dados = LOG_SHEET.get_all_records()
 usuario = st.session_state.usuario.lower()
 esp = st.session_state.especialidade_atual
-
 total_consultas = sum(1 for l in dados if l.get("usuario", "").lower() == usuario)
 total_especialidade = sum(1 for l in dados if l.get("usuario", "").lower() == usuario and
                           l.get("especialidade", "").strip().lower() == esp.lower())
@@ -204,8 +204,7 @@ if st.session_state.thread_id and not st.session_state.consulta_finalizada:
                 st.markdown(resposta_final)
 
             st.session_state.consulta_finalizada = True
-
-            especialidade = st.session_state.get("especialidade_atual", "Desconhecida")
+            especialidade = st.session_state.get("especialidade_atual", "Indefinida")
             registrar_caso(st.session_state.usuario, resposta_final, especialidade)
 
             nota = extrair_nota(resposta_final)
